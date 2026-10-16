@@ -62,6 +62,7 @@ export interface Employee {
   position_id: string | null;
   location_id: string | null;
   manager_id: string | null;
+  biometric_user_id: string | null;
   employment_type: EmploymentType;
   status: EmployeeStatus;
   joining_date: string | null;

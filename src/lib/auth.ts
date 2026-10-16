@@ -11,6 +11,8 @@ export interface Session {
   /** Department IDs where the user holds a scoped HOD role. */
   hodDepartments: string[];
   employee: Pick<Employee, "id" | "full_name" | "employee_code" | "department_id" | "manager_id"> | null;
+  /** Line manager of at least one employee — can approve their requests. */
+  hasReports: boolean;
   isHR: boolean;
   isAdmin: boolean;
 }
@@ -37,6 +39,9 @@ export const getSession = cache(async (): Promise<Session | null> => {
 
   const roles = new Set<AppRole>((roleRows ?? []).map((r) => r.role as AppRole));
   if (employee) roles.add("employee");
+  const { count: reports } = employee
+    ? await supabase.from("employees").select("id", { count: "exact", head: true }).eq("manager_id", employee.id)
+    : { count: 0 };
 
   return {
     userId: claims.sub,
@@ -46,6 +51,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
       .filter((r) => r.role === "hod" && r.department_id)
       .map((r) => r.department_id as string),
     employee,
+    hasReports: (reports ?? 0) > 0,
     isHR: roles.has("hr_admin") || roles.has("system_admin"),
     isAdmin: roles.has("system_admin"),
   };

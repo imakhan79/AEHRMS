@@ -17,7 +17,8 @@ async function cleanup(db) {
   // Remove the audit entries this test generated (pre-production test data only).
   await db.query(
     `delete from audit_logs where changed_by = any($1) or record_id = any($2)
-       or (table_name in ('leave_requests','leave_balances','user_roles') and (new_data->>'employee_id' = any($2) or old_data->>'employee_id' = any($2) or new_data->>'user_id' = any($3) or old_data->>'user_id' = any($3)))`,
+       or new_data->>'employee_id' = any($2) or old_data->>'employee_id' = any($2)
+       or new_data->>'user_id' = any($3) or old_data->>'user_id' = any($3)`,
     [[ADMIN.id, REPORT.id], rows.map((r) => r.id), [ADMIN.id, REPORT.id]],
   );
 }
@@ -60,6 +61,12 @@ async function cleanup(db) {
     await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify({ sub: REPORT.id, role: "authenticated" })]);
     await db.query(`insert into leave_requests (employee_id, leave_type_id, start_date, end_date, reason) values ($1,$2,$3,$4,'E2E test')`,
       [report.id, al, `${yr}-02-08`, `${yr}-02-09`]);
+    await db.query("begin");
+    await db.query("set local role authenticated");
+    await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: REPORT.id, role: "authenticated" })]);
+    // Field punch far from office → pending, shows in the approvals queue.
+    await db.query(`insert into attendance_punches (employee_id, punch_type, source, latitude, longitude) values ($1,'in','mobile',33.6844,73.0479)`, [report.id]);
+    await db.query("commit");
     await db.query(`select set_config('request.jwt.claims', '', false)`);
 
     // Real sign-in through Supabase Auth, cookies captured exactly as @supabase/ssr writes them.
@@ -84,7 +91,29 @@ async function cleanup(db) {
       ["/profile", ["My profile", "Contact details", "Emergency contacts"]],
       ["/admin/roles", ["Users &amp; roles", "System Admin", "Assign a role"]],
       ["/admin/audit", ["Audit log", "employees"]],
+      ["/attendance", ["Check in", "Request a correction", "My attendance"]],
+      ["/attendance/approvals", ["Field attendance to verify (1)", "Etoe Report"]],
+      ["/attendance/reports", ["Daily attendance", "Monthly summary", "E2E-REP"]],
+      ["/attendance/setup", ["General (09:00–17:00)", "Register device", "Manual punch"]],
+      [`/attendance/export?kind=summary&month=${new Date().toISOString().slice(0, 7)}`, ['"Code"', "E2E-ADM"]],
     ];
+
+    // Check in through the same client path the browser uses (RLS + triggers apply).
+    const { data: punch, error: pErr } = await supabase
+      .from("attendance_punches")
+      .insert({ employee_id: admin.id, punch_type: "in", source: "web", client_event_id: crypto.randomUUID() })
+      .select("verification, work_date")
+      .single();
+    const punchOk = !pErr && punch?.verification === "pending"; // HO has no coordinates yet → manager verifies
+    if (!punchOk) failures++;
+    console.log(`${punchOk ? "PASS" : "FAIL"}  web check-in via supabase-js → ${pErr?.message ?? punch?.verification}`);
+    const bio = await fetch(base + "/api/attendance/biometric", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-device-code": "NOPE", "x-device-key": "bad" },
+      body: JSON.stringify({ events: [] }),
+    });
+    if (bio.status !== 401) failures++;
+    console.log(`${bio.status === 401 ? "PASS" : "FAIL"}  biometric endpoint rejects unknown device → ${bio.status}`);
     for (const [path, expects] of pages) {
       const res = await fetch(base + path, { headers: { cookie }, redirect: "manual" });
       const html = await res.text();

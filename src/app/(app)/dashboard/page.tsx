@@ -3,8 +3,9 @@ import Link from "next/link";
 import { requireSession, hasAnyRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, Notice, PageHeader, Stat, Table, Td, statusTone } from "@/components/ui";
-import { fmtDate, fmtDays, titleCase } from "@/lib/format";
+import { fmtDate, fmtDays, fmtTime, titleCase } from "@/lib/format";
 import { getApprovalQueue } from "@/lib/leave";
+import { getAttendanceQueue, pkToday } from "@/lib/attendance";
 import type { LeaveBalance, LeaveRequest } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -16,7 +17,8 @@ export default async function DashboardPage() {
   const emp = session.employee;
   const seesOrg = hasAnyRole(session, ["hr_admin", "system_admin", "executive", "finance", "auditor"]);
 
-  const [balances, myRequests, pendingApprovals, headcount] = await Promise.all([
+  const today = pkToday();
+  const [balances, myRequests, pendingApprovals, headcount, todayPunches, attQueue, presentToday] = await Promise.all([
     emp
       ? supabase.from("leave_balance_summary").select("*").eq("employee_id", emp.id).eq("year", year)
       : Promise.resolve({ data: [] as LeaveBalance[] }),
@@ -32,7 +34,19 @@ export default async function DashboardPage() {
     seesOrg
       ? supabase.from("employees").select("status, department_id, department:departments!employees_department_id_fkey(name)").is("deleted_at", null)
       : Promise.resolve({ data: null }),
+    emp
+      ? supabase.from("attendance_punches").select("punch_type, punch_time, verification").eq("employee_id", emp.id).eq("work_date", today).neq("verification", "rejected").order("punch_time")
+      : Promise.resolve({ data: [] }),
+    getAttendanceQueue(session),
+    seesOrg
+      ? supabase.from("attendance_punches").select("employee_id").eq("work_date", today).eq("punch_type", "in").neq("verification", "rejected")
+      : Promise.resolve({ data: null }),
   ]);
+  const punches = (todayPunches.data ?? []) as { punch_type: "in" | "out"; punch_time: string }[];
+  const firstIn = punches.find((p) => p.punch_type === "in");
+  const lastPunch = punches.at(-1);
+  const attPending = attQueue.punches.length + attQueue.regularizations.length;
+  const presentCount = new Set((presentToday.data ?? []).map((p) => p.employee_id)).size;
 
   const active = (headcount.data ?? []).filter((e) => e.status !== "exited" && e.status !== "draft");
   const byDept = new Map<string, number>();
@@ -60,7 +74,22 @@ export default async function DashboardPage() {
       )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {(balances.data as LeaveBalance[] | null)?.slice(0, 3).map((b) => (
+        {emp && (
+          <Link href="/attendance" className="block">
+            <Stat
+              label="Today"
+              value={firstIn ? (lastPunch?.punch_type === "out" ? "Checked out" : "Checked in") : "Not checked in"}
+              hint={firstIn ? `In at ${fmtTime(firstIn.punch_time)}${lastPunch?.punch_type === "out" ? ` · out ${fmtTime(lastPunch.punch_time)}` : ""}` : "Mark attendance →"}
+            />
+          </Link>
+        )}
+        {attPending > 0 && (
+          <Link href="/attendance/approvals" className="block">
+            <Stat label="Attendance to approve" value={attPending} hint="Field punches & corrections →" />
+          </Link>
+        )}
+        {seesOrg && <Stat label="Checked in today" value={presentCount} hint={`of ${active.length} active`} />}
+        {(balances.data as LeaveBalance[] | null)?.slice(0, 2).map((b) => (
           <Stat key={b.id} label={b.leave_type} value={fmtDays(b.available)} hint={`of ${b.entitled} · ${b.pending} pending`} />
         ))}
         {pendingApprovals.length > 0 && (

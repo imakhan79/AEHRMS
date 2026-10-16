@@ -36,6 +36,7 @@ const employeeSchema = z.object({
   position_id: optUuid,
   location_id: optUuid,
   manager_id: optUuid,
+  biometric_user_id: z.string().trim().max(30).optional(),
   employment_type: z.enum(EMPLOYMENT_TYPES),
   status: z.enum(EMPLOYEE_STATUSES),
   joining_date: optDate,

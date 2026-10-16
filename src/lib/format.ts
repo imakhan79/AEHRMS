@@ -24,6 +24,20 @@ export function titleCase(value: string | null | undefined): string {
   return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const timeFmt = new Intl.DateTimeFormat("en-PK", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Karachi" });
+
+export function fmtTime(value: string | null | undefined): string {
+  return value ? timeFmt.format(new Date(value)) : "—";
+}
+
+/** 545 → "9h 05m" */
+export function fmtMinutes(mins: number | null | undefined): string {
+  if (!mins) return "—";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+}
+
 export function fmtDays(n: number | string): string {
   const v = Number(n);
   return `${Number.isInteger(v) ? v : v.toFixed(1)} day${v === 1 ? "" : "s"}`;

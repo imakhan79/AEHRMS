@@ -101,15 +101,23 @@ export function statusTone(status: string): keyof typeof badgeTones {
     case "approved":
     case "active":
     case "confirmed":
+    case "present":
+    case "verified":
+    case "auto":
       return "green";
     case "pending":
     case "probation":
     case "notice":
+    case "late":
+    case "half_day":
+    case "missing_punch":
       return "amber";
     case "rejected":
     case "exited":
+    case "absent":
       return "red";
     case "draft":
+    case "leave":
       return "blue";
     default:
       return "gray";

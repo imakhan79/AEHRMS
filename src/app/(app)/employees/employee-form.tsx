@@ -121,6 +121,9 @@ export function EmployeeForm({ employee, options }: { employee?: Employee; optio
             <Opts items={options.managers.filter((m) => m.id !== e?.id)} />
           </Select>
         </Field>
+        <Field label="Biometric ID" name="biometric_user_id" hint="The user number enrolled on the attendance device.">
+          <Input id="biometric_user_id" name="biometric_user_id" defaultValue={v("biometric_user_id")} />
+        </Field>
         <Field label="Employment type" name="employment_type">
           <Select id="employment_type" name="employment_type" defaultValue={e?.employment_type ?? "permanent"}>
             {EMPLOYMENT_TYPES.map((t) => (

@@ -13,6 +13,7 @@ import { loadEmployeeOptions } from "../options";
 import { AllocateForm, DependentForm, EmergencyForm, HistoryForm, PrivateForm, UploadForm } from "../section-forms";
 import { DocumentsTable, EmergencyTable, mask } from "../shared";
 import { allocateDefaultLeave } from "../actions";
+import { EmployeeAttendanceCard } from "../../attendance/employee-card";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -214,6 +215,8 @@ export default async function EmployeePage({ params }: PageProps<"/employees/[id
             )}
           </Card>
         </div>
+
+        <EmployeeAttendanceCard employeeId={id} biometricId={e.biometric_user_id} canEdit={hr} />
 
         {(hr || isSelf || session.roles.has("auditor")) && (
           <Card title="Personnel file">

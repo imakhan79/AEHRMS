@@ -1,20 +1,29 @@
 import { requireSession, hasAnyRole, DIRECTORY_ROLES } from "@/lib/auth";
 import { ROLE_LABELS, type AppRole } from "@/lib/types";
-import { signOut } from "@/app/login/actions";
 import { Nav, type NavItem } from "./nav";
+import { SignOutButton } from "./sign-out-button";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await requireSession();
 
   const items: NavItem[] = [{ href: "/dashboard", label: "Dashboard", section: "Overview" }];
+  const approver = session.isHR || session.roles.has("hod") || session.hasReports;
   if (session.employee) {
     items.push(
       { href: "/profile", label: "My Profile", section: "Self-service" },
+      { href: "/attendance", label: "Attendance", section: "Self-service" },
       { href: "/leave", label: "Leave", section: "Self-service" },
     );
-  } else if (session.isHR || session.roles.has("hod")) {
+  } else if (approver) {
     items.push({ href: "/leave", label: "Leave approvals", section: "Self-service" });
   }
+  if (approver) {
+    items.push({ href: "/attendance/approvals", label: "Attendance approvals", section: "Team" });
+  }
+  if (session.hasReports || hasAnyRole(session, ["hr_admin", "system_admin", "executive", "finance", "auditor", "hod"])) {
+    items.push({ href: "/attendance/reports", label: "Attendance reports", section: "Team" });
+  }
+  if (session.isHR) items.push({ href: "/attendance/setup", label: "Attendance setup", section: "HR" });
   if (hasAnyRole(session, DIRECTORY_ROLES) || session.employee) {
     items.push({ href: "/employees", label: "Employees", section: "HR" });
   }
@@ -57,9 +66,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <div className="text-sm font-medium text-gray-900">{session.employee?.full_name ?? session.email}</div>
               {session.employee && <div className="text-xs text-gray-500">{session.employee.employee_code}</div>}
             </div>
-            <form action={signOut}>
-              <button className="rounded-lg px-2.5 py-1.5 text-sm text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50">Sign out</button>
-            </form>
+            <SignOutButton />
           </div>
         </header>
         <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
