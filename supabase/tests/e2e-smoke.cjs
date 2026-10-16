@@ -124,6 +124,9 @@ async function cleanup(db) {
       ["/recruitment/onboarding", ["Onboarding"]],
       ["/performance", ["Cycles", "New cycle"]],
       ["/training", ["Training calendar", "Training needs (TNA)"]],
+      ["/assets", ["Assets"]],
+      ["/benefits", ["Benefits"]],
+      ["/exit", ["Exit & clearance"]],
     ];
     for (const [table, path] of [["requisitions", "/recruitment/"], ["candidates", "/recruitment/candidates/"], ["appraisals", "/performance/"]]) {
       const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];

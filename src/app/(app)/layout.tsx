@@ -25,6 +25,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       { href: "/helpdesk", label: "Helpdesk", section: "Self-service" },
       { href: "/performance", label: "Performance", section: "Talent" },
       { href: "/training", label: "Training", section: "Talent" },
+      { href: "/benefits", label: "Benefits", section: "Self-service" },
+      { href: "/assets", label: "My assets", section: "Self-service" },
+      { href: "/exit", label: "Exit & clearance", section: "Self-service" },
     );
   } else if (approver) {
     items.push({ href: "/leave", label: "Leave approvals", section: "Self-service" });
@@ -40,6 +43,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   }
   if (session.isHR || session.roles.has("recruiter") || session.roles.has("hod") || session.hasReports || session.roles.has("executive")) {
     items.push({ href: "/recruitment", label: "Recruitment", section: "Talent" });
+  }
+  if (!session.employee && (session.isHR || session.canReadPayroll)) {
+    items.push(
+      { href: "/assets", label: "Assets", section: "HR" },
+      { href: "/benefits", label: "Benefits", section: "HR" },
+      { href: "/exit", label: "Exit & clearance", section: "HR" },
+    );
   }
   if (!session.employee && session.isHR) {
     items.push({ href: "/performance", label: "Performance", section: "Talent" }, { href: "/training", label: "Training", section: "Talent" });
