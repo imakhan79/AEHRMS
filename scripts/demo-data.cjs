@@ -64,6 +64,7 @@ async function remove(db) {
   await db.query(`delete from requisitions where justification like 'DEMO%'`);
   await db.query(`delete from appraisal_cycles where name like 'DEMO %'`);
   await db.query(`delete from training_events where description like 'DEMO%'`);
+  await db.query(`delete from assets where asset_tag like 'DEMO-%'`); // cascades assignments
   await db.query(`update departments set head_employee_id = null where head_employee_id::text = any($1)`, [emps]);
   await db.query(`update employees set manager_id = null where manager_id::text = any($1)`, [emps]);
   await db.query(`delete from leave_requests where employee_id::text = any($1)`, [emps]);
@@ -412,6 +413,67 @@ async function seed(db, password) {
   await as(userIds.finance, async () => {
     await db.query(`select public.fin_post_vendor_payment($1)`, [ids.pay]);
     await db.query(`select public.fin_approve_budget($1)`, [ids.bud]);
+  });
+
+  // ---------- Assets, benefits, exit ----------
+  await as(userIds.admin, async () => {
+    const assets = [
+      ["DEMO-LAP-001", "Dell Latitude 5440", "laptop", "DL5440-A01", 285000, "good"],
+      ["DEMO-LAP-002", "Lenovo ThinkPad T14", "laptop", "TP14-B02", 310000, "good"],
+      ["DEMO-LAP-003", "HP EliteBook 840", "laptop", "HP840-C03", 265000, "fair"],
+      ["DEMO-LAP-004", "Dell Latitude 5440", "laptop", "DL5440-A04", 285000, "new"],
+      ["DEMO-PHN-001", "Samsung Galaxy A55", "phone", "SGA55-001", 115000, "good"],
+      ["DEMO-PHN-002", "iPhone 15", "phone", "IP15-002", 290000, "good"],
+      ["DEMO-VEH-001", "Suzuki Cultus (LEA-1234)", "vehicle", "CHS-998877", 3900000, "good"],
+      ["DEMO-EQP-001", "Epson projector EB-X51", "equipment", "EBX51-77", 145000, "poor"],
+    ];
+    const a = {};
+    for (const [tag, name, cat, sn, cost, cond] of assets) {
+      a[tag] = (await one(`insert into assets (asset_tag, name, category, serial_number, location_id, purchase_date, purchase_cost, condition, notes)
+        values ($1,$2,$3,$4,$5, current_date - 400, $6, $7, 'DEMO') returning id`, [tag, name, cat, sn, loc.LHR, cost, cond])).id;
+    }
+    const issue = (tag, code) => db.query(`select public.asset_issue($1,$2,'DEMO issue')`, [a[tag], emp[code]]);
+    await issue("DEMO-LAP-001", "DEMO-003");
+    await issue("DEMO-PHN-001", "DEMO-003");
+    await issue("DEMO-LAP-002", "DEMO-002");
+    await issue("DEMO-LAP-003", "DEMO-006");
+    await issue("DEMO-PHN-002", "DEMO-006");
+    await issue("DEMO-VEH-001", "DEMO-008");
+    await issue("DEMO-EQP-001", "DEMO-009");
+    await db.query(`select public.asset_return($1,'damaged','Lamp failure — sent for repair')`, [a["DEMO-EQP-001"]]);
+    ids.assets = a;
+
+    // Dependents + enrolments (benefit deductions apply from next payroll run)
+    const sp = (await one(`insert into employee_dependents (employee_id, name, relationship, date_of_birth) values ($1,'Kamran Malik','spouse','1992-04-11') returning id`, [emp["DEMO-003"]])).id;
+    const kid = (await one(`insert into employee_dependents (employee_id, name, relationship, date_of_birth) values ($1,'Hira Malik','daughter','2020-09-02') returning id`, [emp["DEMO-003"]])).id;
+    const plan = async (c) => (await one(`select id from benefit_plans where code = $1`, [c])).id;
+    const ghi = await plan("GHI"), gli = await plan("GLI"), pick = await plan("PICK");
+    await db.query(`insert into benefit_enrollments (plan_id, employee_id, dependent_ids) values ($1,$2,$3)`, [ghi, emp["DEMO-003"], [sp, kid]]);
+    for (const code of ["DEMO-001", "DEMO-002", "DEMO-004", "DEMO-005", "DEMO-007"]) {
+      await db.query(`insert into benefit_enrollments (plan_id, employee_id) values ($1,$2)`, [ghi, emp[code]]);
+    }
+    for (const code of ["DEMO-001", "DEMO-002", "DEMO-003", "DEMO-004", "DEMO-005", "DEMO-006", "DEMO-007", "DEMO-008"]) {
+      await db.query(`insert into benefit_enrollments (plan_id, employee_id) values ($1,$2)`, [gli, emp[code]]);
+    }
+    await db.query(`insert into benefit_enrollments (plan_id, employee_id) values ($1,$2)`, [pick, emp["DEMO-008"]]);
+
+    // Separations: Fatima resigned (approved, in clearance); Hamza's awaits Bilal.
+    ids.sepF = (await one(`select public.exit_submit($1,'resignation', current_date + 25, 'DEMO: relocating to Karachi for family reasons') as id`, [emp["DEMO-006"]])).id;
+    ids.sepH = (await one(`select public.exit_submit($1,'resignation', current_date + 30, 'DEMO: accepted an offer for higher studies abroad') as id`, [emp["DEMO-005"]])).id;
+  });
+  await as(userIds.employee, async () => {
+    const asg = (await one(`select id from asset_assignments where asset_id = $1 and returned_on is null`, [ids.assets["DEMO-LAP-001"]])).id;
+    await db.query(`select public.asset_acknowledge($1)`, [asg]);
+  });
+  await as(userIds.manager, async () => {
+    await db.query(`select public.exit_decide($1, true, 'Approved — handover to Usman during notice period')`, [ids.sepF]);
+    const dep = (await one(`select id from clearance_items where separation_id = $1 and area = 'department'`, [ids.sepF])).id;
+    await db.query(`select public.exit_clear($1,'Handover document received')`, [dep]);
+  });
+  await as(userIds.admin, async () => {
+    await db.query(`select public.asset_return($1,'good','Returned during notice')`, [ids.assets["DEMO-PHN-002"]]);
+    const it = (await one(`select id from clearance_items where separation_id = $1 and area = 'it'`, [ids.sepF])).id;
+    await db.query(`select public.exit_clear($1,'Email and VPN disabled from last day')`, [it]);
   });
   return { employees: Object.keys(emp).length, days: days.length };
 }
