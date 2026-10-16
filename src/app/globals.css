@@ -1,11 +1,72 @@
 @import "tailwindcss";
 
+/*
+ * Brand tokens from the Zicon Technology logo:
+ *   maroon #73201B (primary) · amber #E99A22 (accent) · grey #9A9A9A (neutral).
+ * The app's "indigo" scale is remapped to the maroon scale and "gray" to warm neutrals,
+ * so every screen inherits the brand. Button/link pairs meet WCAG AA (600 on white ≈ 8:1).
+ */
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
+
+  --color-indigo-50: #fdf5f4;
+  --color-indigo-100: #fae8e6;
+  --color-indigo-200: #f3cdc9;
+  --color-indigo-300: #e7a59e;
+  --color-indigo-400: #d4766c;
+  --color-indigo-500: #b0473d;
+  --color-indigo-600: #8a2a22;
+  --color-indigo-700: #73201b;
+  --color-indigo-800: #5c1915;
+  --color-indigo-900: #401310;
+  --color-indigo-950: #26100d;
+
+  --color-brand-amber: #e99a22;
+  --color-brand-amber-soft: #fdf3e2;
+  --color-brand-grey: #9a9a9a;
+
+  --color-gray-50: #fafaf9;
+  --color-gray-100: #f5f5f4;
+  --color-gray-200: #e7e5e4;
+  --color-gray-300: #d6d3d1;
+  --color-gray-400: #a8a29e;
+  --color-gray-500: #78716c;
+  --color-gray-600: #57534e;
+  --color-gray-700: #44403c;
+  --color-gray-800: #292524;
+  --color-gray-900: #1c1917;
 }
 
 body {
-  background: #f6f7f9;
-  color: #111827;
+  background: #fafaf9;
+  color: #1c1917;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible, consistent keyboard focus (3px ring, brand maroon) */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #8a2a22;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+button:not(:disabled),
+summary,
+[role="button"] {
+  cursor: pointer;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

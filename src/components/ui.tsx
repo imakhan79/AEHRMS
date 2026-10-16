@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+import { StatCard } from "@/components/motion";
 
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -33,7 +34,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900">{title}</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-balance text-gray-900">{title}</h1>
         {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
@@ -55,7 +56,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-xl border border-gray-200 bg-white shadow-sm", className)}>
+    <section className={cn("rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)]", className)}>
       {(title || actions) && (
         <header className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4">
           <div>
@@ -72,11 +73,11 @@ export function Card({
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <div className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums text-gray-900">{value}</div>
+    <StatCard>
+      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</div>
+      <div className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-gray-900">{value}</div>
       {hint && <div className="mt-1 text-xs text-gray-500">{hint}</div>}
-    </div>
+    </StatCard>
   );
 }
 
