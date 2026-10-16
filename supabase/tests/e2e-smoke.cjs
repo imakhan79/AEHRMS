@@ -119,7 +119,16 @@ async function cleanup(db) {
       ["/loans", ["My applications", "Apply"]],
       ["/helpdesk", ["Raise a ticket"]],
       ["/helpdesk?view=all", ["Resolved within SLA"]],
+      ["/recruitment", ["Requisitions", "Raise a requisition"]],
+      ["/recruitment/interviews", ["Awaiting your feedback"]],
+      ["/recruitment/onboarding", ["Onboarding"]],
+      ["/performance", ["Cycles", "New cycle"]],
+      ["/training", ["Training calendar", "Training needs (TNA)"]],
     ];
+    for (const [table, path] of [["requisitions", "/recruitment/"], ["candidates", "/recruitment/candidates/"], ["appraisals", "/performance/"]]) {
+      const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
+      if (row) pages.push([path + row.id, []]);
+    }
     for (const [table, path] of [["bills", "/finance/payables/bills/"], ["invoices", "/finance/receivables/invoices/"], ["vendor_payments", "/finance/payables/payments/"], ["journal_entries", "/finance/journals/"], ["budgets", "/finance/budgets/"]]) {
       const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
       if (row) pages.push([path + row.id, ["Back"].filter(() => !path.includes("journals") && !path.includes("budgets"))]);

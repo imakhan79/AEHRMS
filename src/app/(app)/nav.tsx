@@ -5,6 +5,10 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   BadgeDollarSign,
+  Bell,
+  Briefcase,
+  GraduationCap,
+  Target,
   BookOpen,
   Building2,
   CalendarCheck,
@@ -64,6 +68,10 @@ const ICONS: [string, LucideIcon][] = [
   ["/finance/budgets", CalendarCheck],
   ["/finance/settings", Settings],
   ["/finance", Landmark],
+  ["/recruitment", Briefcase],
+  ["/performance", Target],
+  ["/training", GraduationCap],
+  ["/notifications", Bell],
 ];
 
 function iconFor(href: string): LucideIcon {

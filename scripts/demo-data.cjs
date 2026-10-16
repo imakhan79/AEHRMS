@@ -60,9 +60,17 @@ async function remove(db) {
     throw e;
   }
   await db.query(`delete from audit_logs where record_id = any($1)`, [[...runs.map((r) => r.id), ...jes, ...loanJes.map((l) => l.id)]]);
+  // Talent demo data (requisitions cascade to candidates/interviews/offers; cycles to appraisals/goals).
+  await db.query(`delete from requisitions where justification like 'DEMO%'`);
+  await db.query(`delete from appraisal_cycles where name like 'DEMO %'`);
+  await db.query(`delete from training_events where description like 'DEMO%'`);
   await db.query(`update departments set head_employee_id = null where head_employee_id::text = any($1)`, [emps]);
   await db.query(`update employees set manager_id = null where manager_id::text = any($1)`, [emps]);
   await db.query(`delete from leave_requests where employee_id::text = any($1)`, [emps]);
+  await db.query(`delete from tickets where requester_id::text = any($1)`, [emps]);
+  await db.query(`delete from loan_applications where employee_id::text = any($1)`, [emps]);
+  await db.query(`delete from expense_claims where employee_id::text = any($1)`, [emps]);
+  await db.query(`delete from travel_requests where employee_id::text = any($1)`, [emps]);
   await db.query(`delete from employees where id::text = any($1)`, [emps]); // cascades punches, attendance, balances…
   await db.query(`delete from positions where code like 'DEMO-%'`);
   await db.query(`delete from auth.users where id::text = any($1)`, [users]); // cascades roles + identities
@@ -332,6 +340,74 @@ async function seed(db, password) {
     }
     ids = { pay, bud };
   });
+  // ---------- Talent: recruitment, performance, training ----------
+  await as(userIds.manager, async () => {
+    ids.req = (await one(`insert into requisitions (title, department_id, position_id, location_id, headcount, salary_min, salary_max, justification)
+      values ('Senior Software Engineer', $1, $2, $3, 1, 200000, 300000, 'DEMO: backfill for HRMS rollout') returning id`, [dept.IT, pos["DEMO-SSE"], loc.LHR])).id;
+  });
+  await as(userIds.admin, async () => {
+    await db.query(`update requisitions set status = 'approved' where id = $1`, [ids.req]);
+    const cands = [["Hira Qureshi", "screening", 5, 4], ["Omar Farooq", "interview", 7, null], ["Mahnoor Ali", "applied", 3, null], ["Kashif Mehmood", "rejected", 2, 2]];
+    for (const [name, stage, yrs, rating] of cands) {
+      const id = (await one(`insert into candidates (requisition_id, full_name, email, experience_years, expected_salary, source, rating)
+        values ($1,$2,$3,$4,$5,'linkedin',$6) returning id`, [ids.req, name, `${name.split(" ")[0].toLowerCase()}@candidate.demo`, yrs, 180000 + yrs * 15000, rating])).id;
+      if (stage === "interview") {
+        await db.query(`insert into interviews (candidate_id, round, scheduled_at, mode, interviewer_id) values ($1,'Technical', now() - interval '1 day','video',$2)`, [id, emp["DEMO-002"]]);
+      } else if (stage !== "applied") {
+        await db.query(`update candidates set stage = $2 where id = $1`, [id, stage]);
+      }
+    }
+    const fy = Number(pkMonth.slice(0, 4)) + (Number(pkMonth.slice(5, 7)) >= 7 ? 1 : 0);
+    ids.cycle = (await one(`insert into appraisal_cycles (name, cycle_type, period_start, period_end) values ($1,'annual',$2,$3) returning id`,
+      [`DEMO FY${fy} annual review`, `${fy - 1}-07-01`, `${fy}-06-30`])).id;
+    await db.query(`select public.perf_start_cycle($1)`, [ids.cycle]);
+    ids.ev = (await one(`insert into training_events (title, provider, trainer, start_date, end_date, mode, location, capacity, cost, description)
+      values ('Advanced Excel for Finance','Zicon Academy','Faisal Rauf', current_date + 12, current_date + 13,'classroom','Lahore HO — Training Room',12,85000,'DEMO') returning id`)).id;
+    await db.query(`insert into training_events (title, start_date, end_date, mode, capacity, status, description)
+      values ('Fire safety & first aid', current_date - 20, current_date - 20, 'on_job', 30, 'completed', 'DEMO')`);
+    await db.query(`insert into training_participants (event_id, employee_id) values ($1,$2),($1,$3)`, [ids.ev, emp["DEMO-007"], emp["DEMO-008"]]);
+    await db.query(`insert into certifications (employee_id, name, issuer, issued_on, expires_on, verified) values ($1,'AWS Certified Developer','Amazon Web Services', current_date - 1080, current_date + 21, true)`, [emp["DEMO-004"]]);
+    await db.query(`insert into training_needs (employee_id, skill, reason, priority) values ($1,'Power BI dashboards','Finance reporting','high')`, [emp["DEMO-007"]]);
+  });
+  // Goals for Ayesha (as herself), then HR opens reviews so she can self-assess.
+  await as(userIds.employee, async () => {
+    const ap = (await one(`select id from appraisals where cycle_id = $1 and employee_id = $2`, [ids.cycle, emp["DEMO-003"]])).id;
+    await db.query(`insert into goals (appraisal_id, kind, title, target, weight) values
+      ($1,'kpi','Deliver payroll module features','All sprint commitments met',50),
+      ($1,'okr','Raise automated test coverage','≥ 80% on core modules',30),
+      ($1,'goal','Mentor two junior developers','Monthly 1:1s',20)`, [ap]);
+  });
+  await as(userIds.manager, async () => {
+    const ap = (await one(`select id from appraisals where cycle_id = $1 and employee_id = $2`, [ids.cycle, emp["DEMO-003"]])).id;
+    await db.query(`insert into goals (appraisal_id, kind, title, weight) values ($1,'kpi','Network uptime 99.9%',60),($1,'goal','Document infrastructure',40)`,
+      [(await one(`select id from appraisals where cycle_id = $1 and employee_id = $2`, [ids.cycle, emp["DEMO-005"]])).id]);
+    await db.query(`insert into feedback_requests (appraisal_id, reviewer_id, relationship) values ($1,$2,'peer')`, [ap, emp["DEMO-004"]]);
+  });
+  await as(userIds.admin, async () => {
+    await db.query(`select public.perf_open_review($1)`, [ids.cycle]);
+  });
+
+  // ---------- Expenses & travel, loan applications, helpdesk ----------
+  await as(userIds.employee, async () => {
+    await db.query(`insert into travel_requests (employee_id, purpose, destination, start_date, end_date, estimated_cost, advance_requested)
+      values ($1,'Client UAT sessions','Islamabad', current_date + 7, current_date + 9, 75000, 30000)`, [emp["DEMO-003"]]);
+    const cl = (await one(`insert into expense_claims (employee_id, title) values ($1,'Gujranwala site visit') returning id`, [emp["DEMO-003"]])).id;
+    const cat = Object.fromEntries((await db.query(`select code, id from expense_categories`)).rows.map((r) => [r.code, r.id]));
+    await db.query(`insert into expense_items (claim_id, category_id, expense_date, description, amount, receipt_path) values
+      ($1,$2,current_date - 6,'Fuel Lahore–Gujranwala return',4200,$4),
+      ($1,$3,current_date - 6,'Daily allowance',3000,null)`, [cl, cat.FUEL, cat.PERDIEM, `${emp["DEMO-003"]}/${cl}/fuel-receipt.pdf`]);
+    await db.query(`select public.exp_submit($1)`, [cl]);
+    await db.query(`insert into loan_applications (employee_id, loan_type, amount, installments, purpose) values ($1,'advance',40000,4,'Children school fees')`, [emp["DEMO-003"]]);
+    const payCat = (await one(`select id from ticket_categories where name = 'Payroll & payslips'`)).id;
+    await db.query(`insert into tickets (requester_id, category_id, subject, description, priority) values
+      ($1,$2,'Overtime missing on last payslip','My overtime for the 3rd and 4th is not reflected.','high')`, [emp["DEMO-003"], payCat]);
+  });
+  await as(userIds.manager, async () => {
+    const itCat = (await one(`select id from ticket_categories where name = 'IT & system access'`)).id;
+    await db.query(`insert into tickets (requester_id, category_id, subject, description, priority) values
+      ($1,$2,'New joiner laptop and email','Please prepare access for the new Senior Software Engineer.','medium')`, [emp["DEMO-002"], itCat]);
+  });
+
   // Maker-checker: Sara prepared; Ali releases the payment and approves the budget.
   await as(userIds.finance, async () => {
     await db.query(`select public.fin_post_vendor_payment($1)`, [ids.pay]);
