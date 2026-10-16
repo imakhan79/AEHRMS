@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const today = pkToday();
   const [balances, myRequests, pendingApprovals, headcount, todayPunches, attQueue, presentToday] = await Promise.all([
     emp
-      ? supabase.from("leave_balance_summary").select("*").eq("employee_id", emp.id).eq("year", year)
+      ? supabase.from("leave_balance_summary").select("*").eq("employee_id", emp.id).eq("year", year).order("leave_type")
       : Promise.resolve({ data: [] as LeaveBalance[] }),
     emp
       ? supabase
