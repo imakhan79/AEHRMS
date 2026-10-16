@@ -1,0 +1,76 @@
+"use server";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import type { ActionState } from "@/lib/types";
+
+const credentials = z.object({
+  email: z.email("Enter a valid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+});
+
+async function callbackUrl() {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}/auth/callback?next=/dashboard`;
+}
+
+export async function signIn(_: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = credentials.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error) {
+    return {
+      error:
+        error.code === "email_not_confirmed"
+          ? "Please confirm your email first — check your inbox for the link."
+          : "Incorrect email or password.",
+    };
+  }
+  redirect("/dashboard");
+}
+
+export async function signUp(_: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = credentials.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signUp({
+    ...parsed.data,
+    options: { emailRedirectTo: await callbackUrl() },
+  });
+  if (error) return { error: error.message };
+  if (data.session) redirect("/dashboard");
+  return {
+    ok: true,
+    message: "Account created. Check your email and click the confirmation link to sign in.",
+  };
+}
+
+export async function sendMagicLink(_: ActionState, formData: FormData): Promise<ActionState> {
+  const email = z.email().safeParse(formData.get("email"));
+  if (!email.success) return { error: "Enter a valid email address." };
+
+  const supabase = await createClient();
+  // shouldCreateUser: false — magic links are for existing accounts only.
+  const { error } = await supabase.auth.signInWithOtp({
+    email: email.data,
+    options: { shouldCreateUser: false, emailRedirectTo: await callbackUrl() },
+  });
+  if (error && error.code !== "otp_disabled") {
+    // Don't reveal whether an account exists.
+    console.error("magic link:", error.message);
+  }
+  return { ok: true, message: "If an account exists for that email, a sign-in link is on its way." };
+}
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}
