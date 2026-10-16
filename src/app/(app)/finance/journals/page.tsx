@@ -10,7 +10,7 @@ import { requireFinanceReader } from "../shared";
 
 export const metadata: Metadata = { title: "Journals" };
 
-const SOURCES = ["manual", "payroll", "payroll_payment", "loan", "fnf", "ap_bill", "ap_payment", "ar_invoice", "ar_receipt", "reversal"];
+const SOURCES = ["manual", "payroll", "payroll_payment", "loan", "fnf", "ap_bill", "ap_payment", "ar_invoice", "ar_receipt", "reversal", "expense", "expense_payment", "travel_advance"];
 
 export default async function JournalsPage({ searchParams }: PageProps<"/finance/journals">) {
   const session = await requireFinanceReader();

@@ -21,6 +21,8 @@ const SOURCE_LINK: Record<string, string> = {
   ar_invoice: "/finance/receivables/invoices/",
   ar_receipt: "/finance/receivables/receipts/",
   reversal: "/finance/journals/",
+  expense: "/expenses/",
+  expense_payment: "/expenses/",
 };
 
 export default async function JournalPage({ params }: PageProps<"/finance/journals/[id]">) {

@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Badge, Card, Notice, PageHeader, Stat, Table, Td, buttonClass, cn } from "@/components/ui";
+import { Card, Notice, PageHeader, Stat, Table, Td, buttonClass, cn } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
 import { PAYROLL_STEPS, money, monthLabel, taxYearLabel, type PayrollRun, type Payslip } from "@/lib/payroll";
 import { ProcessButton, TransitionForm } from "../../forms";

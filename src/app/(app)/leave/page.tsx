@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getApprovalQueue } from "@/lib/leave";
+import { pkToday } from "@/lib/attendance";
 import { Badge, Card, Notice, PageHeader, Table, Td, statusTone } from "@/components/ui";
 import { buttonClass } from "@/components/ui";
 import { fmtDate, fmtDays, titleCase } from "@/lib/format";
@@ -17,7 +18,7 @@ export default async function LeavePage() {
   const supabase = await createClient();
   const emp = session.employee;
   const year = new Date().getFullYear();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = pkToday(); // Pakistan date, not UTC
 
   const [types, balances, mine, queue, holidays] = await Promise.all([
     supabase.from("leave_types").select("id, name").eq("is_active", true).order("name"),

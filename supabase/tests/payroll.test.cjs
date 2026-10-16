@@ -94,6 +94,14 @@ const n = (v) => Number(v);
     ok("1 absent day → 30 payable days, basic 62,000 × 30/31 = 60,000", n(slip2?.payable_days) === 30 && n(slip2?.basic_salary) === 60000, `${slip2?.payable_days} ${slip2?.basic_salary}`);
     r = await q(`select count(*)::int n from payslips where payroll_run_id=$1 and employee_id in ($2,$3)`, [run, eHr, eFin]);
     ok("employees without a salary record are not on the run", r.rows[0].n === 0);
+    // Audit regression: an "exited" employee with no exit date must not be paid.
+    await asAdmin();
+    const eGone = (await q(`insert into employees (employee_code, first_name, last_name, department_id, status) values ('PY-099','Gone','Test',$1,'exited') returning id`, [dept])).rows[0].id;
+    await q(`insert into employee_salaries (employee_id, effective_from, basic_salary) values ($1,'2026-01-01',50000)`, [eGone]);
+    await as("hr");
+    await q(`select public.payroll_process_run($1)`, [run]);
+    r = await q(`select count(*)::int n from payslips where payroll_run_id=$1 and employee_id=$2`, [run, eGone]);
+    ok("exited employee without exit date is not paid", r.rows[0].n === 0);
 
     // --- employee can't see a draft payslip ---
     await as("emp");
