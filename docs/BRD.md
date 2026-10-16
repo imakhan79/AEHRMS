@@ -714,6 +714,183 @@ RBAC + RLS:
 3. **Next.js version.** The BRD says Next.js 14+. The project is on **Next.js 16**, which uses `proxy.ts` instead of `middleware.ts`.
 4. **Hosting region.** The Supabase project is in **ap-northeast-2 (Seoul)**. For users in Pakistan, a nearer region (e.g. ap-south-1 Mumbai, or me-central-1 if offered) would cut latency on every request and help NFR-01/02. A region can't be changed on an existing project. Moving now, while the database is empty, costs nothing; later it means a migration. Set the Vercel function region to match.
 
+## 12. System Architecture
+
+### 12.1 High-Level Architecture
+
+```
+┌──────────────────────────── CLIENT LAYER ────────────────────────────┐
+│  Desktop browser · Mobile browser · Tablet browser · PWA (offline)   │
+└───────────────────────────────────┬──────────────────────────────────┘
+                                    │ HTTPS
+┌───────────────────── NEXT.JS APPLICATION (Vercel) ───────────────────┐
+│  SSR / SSG pages · API routes (edge) · Auth middleware · PWA workers │
+└───────────────────────────────────┬──────────────────────────────────┘
+                                    │
+┌────────────────────────── SUPABASE PLATFORM ─────────────────────────┐
+│  Auth (JWT, MFA) · PostgREST (API) · Realtime (WebSocket) · Storage  │
+│  Edge Functions · PostgreSQL + RLS · Vault (secrets) · pg_cron       │
+│  ┌─────────────── NATIVE FINANCE & ACCOUNTING ──────────────────┐    │
+│  │ Chart of Accounts · General Ledger · Accounts Payable        │    │
+│  │ Accounts Receivable · Bank Reconciliation · Financial Reports│    │
+│  │ Tax Management · Budget vs Actual                            │    │
+│  └──────────────────────────────────────────────────────────────┘    │
+└───────────────────────────────────┬──────────────────────────────────┘
+                                    │
+┌────────────────────────── INTEGRATION LAYER ─────────────────────────┐
+│  Biometric devices · Email (SMTP) · Bank systems · Al Meezan VPS     │
+│  FBR / EOBI (tax) · PESSI / PF (social security) · 3rd-party APIs    │
+│  Future services                                                     │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 12.2 Data Flow Architecture
+
+Example: an employee submits a leave request.
+
+1. **User action:** employee submits a leave request in the Next.js PWA.
+2. **Next.js API route:** validates input with Zod and checks the session.
+3. **Supabase client:** calls PostgREST or an Edge Function.
+4. **PostgreSQL:** applies RLS policies and inserts/updates data.
+5. **Database triggers:** audit logging, notification queue, balance updates.
+6. **Supabase Realtime:** broadcasts to subscribed clients.
+7. **Edge Function:** sends email / in-app notifications.
+8. **Approval workflow:** notifies the manager, who approves or rejects.
+9. **Finance integration** *(if applicable)*: auto-generates a journal entry and posts it to the GL.
+10. **Dashboards:** update in real time.
+
+### 12.3 Security Architecture
+
+| Layer | Name | Controls |
+|---|---|---|
+| 1 | Network security | HTTPS / TLS 1.3; DDoS protection (Vercel, Supabase); WAF rules |
+| 2 | Authentication | Supabase Auth (JWT); MFA for sensitive roles; SSO; session management |
+| 3 | Authorization | RBAC (roles, permissions); Row Level Security; column-level access; scope-based filtering |
+| 4 | Data protection | Encryption at rest (AES-256); encryption in transit (TLS); pgcrypto column encryption for PII; data masking for non-privileged users |
+| 5 | Audit & monitoring | Immutable audit logs; access logs; failed-login tracking; anomaly detection |
+| 6 | Backup & recovery | Daily automated backups; point-in-time recovery; geo-redundant storage; documented recovery procedures |
+
+### 12.4 Review Notes (raised during capture)
+
+1. **Validation must also live in the database.** In 12.2, Zod validation happens in the Next.js API route, but any signed-in user can call PostgREST directly with the public key and skip Next.js. Zod is for user-friendly form errors only; the real rules go in the database (check constraints, NOT NULL, foreign keys, RLS, and triggers or functions for workflow rules such as leave balance checks).
+2. **Auth middleware:** on Next.js 16 this is `proxy.ts` (already in place). It refreshes the session; per-page and per-table permission checks happen in the database (RLS) and in server code via `getClaims()`.
+
+## 13. Database Design
+
+### 13.1 Complete Schema
+
+**Extensions:** uuid-ossp (UUID generation), pgcrypto (encryption), pg_trgm (trigram search).
+
+**Enums**
+
+| Enum | Values |
+|---|---|
+| employee_status | draft, active, probation, confirmed, notice, exited |
+| attendance_source | biometric, mobile, manual, web |
+| leave_status | pending, approved, rejected, cancelled |
+| payroll_status | draft, review, approved, posted, paid |
+| journal_status | draft, posted, reversed |
+| account_type | asset, liability, equity, revenue, expense |
+| approval_status | pending, approved, rejected, escalated |
+| asset_status | available, assigned, maintenance, retired |
+| ticket_status | open, in_progress, pending, resolved, closed |
+| ticket_priority | low, medium, high, critical |
+
+**Tables by domain**
+
+| Domain | Tables |
+|---|---|
+| Organization | `organizations` (company / division / location / branch / department hierarchy), `departments` (parent-child, cost center reference), `positions` (title, code, grade, salary band) |
+| Employees | `employees` (personal, contact, employment, statutory, bank), `employee_documents`, `employee_dependents`, `employee_emergency_contacts`, `employment_history` |
+| Attendance | `shifts`, `employee_shifts`, `attendance`, `attendance_regularizations`, `biometric_devices`, `biometric_events` (raw device events) |
+| Leave | `leave_types`, `leave_policies`, `leave_balances`, `leave_requests`, `holidays` |
+| Payroll | `salary_components`, `salary_structures`, `salary_structure_components`, `employee_salaries`, `payroll_runs`, `payslips`, `statutory_contributions` (EOBI, PESSI, PF, tax, VPS) |
+| Recruitment | `requisitions`, `candidates`, `interviews`, `offers` |
+| Performance | `appraisal_cycles`, `goals`, `appraisals` |
+| Training | `training_needs`, `training_events`, `training_participants` |
+| Expenses | `expense_categories`, `expense_claims`, `advances` |
+| Loans | `loans`, `loan_installments` |
+| Benefits | `benefit_plans`, `benefit_enrollments` |
+| Assets | `assets`, `asset_assignments` |
+| Helpdesk | `ticket_categories`, `tickets`, `ticket_comments` |
+| Finance & Accounting | `chart_of_accounts`, `fiscal_periods`, `journal_entries`, `journal_entry_lines`, `cost_centers`, `vendors`, `customers`, `accounts_payable`, `accounts_receivable`, `bank_accounts`, `bank_transactions`, `bank_reconciliations`, `taxes`, `budgets` |
+| Audit & System | `audit_logs`, `notifications`, `workflows`, `roles`, `user_roles`, `integration_logs`, `system_settings` |
+
+### 13.2 Indexes
+
+| Table | Indexed on |
+|---|---|
+| employees | status; department; manager; code; CNIC |
+| attendance | (employee, date); date; status |
+| leave_requests | employee; status; dates |
+| payslips | employee; payroll run |
+| journal_entries | date; status |
+| journal_entry_lines | entry; account |
+| audit_logs | (table, record); user; date |
+| notifications | (user, read status) |
+
+**Name search:** trigram (pg_trgm) indexes on employee and candidate names.
+
+### 13.3 Triggers and Functions
+
+| Trigger / function | Behaviour |
+|---|---|
+| Audit trigger | Logs INSERT / UPDATE / DELETE to `audit_logs`; applied to `employees`, `employee_salaries`, `journal_entries`, `payroll_runs` |
+| `updated_at` trigger | Automatically sets `updated_at` on change |
+| Leave balance update | Updates `leave_balances` when a leave request is approved |
+| Journal balance validation | Ensures debits = credits |
+| Payroll → GL posting | Generates the journal entry when payroll is approved (Dr Salary Expense; Cr Salary Payable and statutory liabilities) |
+
+### 13.4 Row Level Security Policies
+
+RLS is enabled on **all** tables. Helper functions: `has_role(role)` checks whether the user has a role; `current_employee_id()` returns the current user's employee ID.
+
+| Table | Operation | Allowed |
+|---|---|---|
+| employees | SELECT | Own record; HR & System Admin (all); managers (team) |
+| employees | INSERT / UPDATE | HR & System Admin |
+| employees | UPDATE | Employee (own record) |
+| payslips | SELECT | Own payslips; HR & Finance (all) |
+| journal_entries | SELECT | Finance, System Admin, Auditor |
+| journal_entries | INSERT / UPDATE | Finance, System Admin |
+| audit_logs | SELECT | System Admin, Auditor |
+| *All other tables* | — | Similar policies |
+
+### 13.5 Review Notes (raised during capture; checked against Supabase security guidance)
+
+**Security issues to fix in the design:**
+
+1. **"Employees update their own record" is unsafe as written.** A row-level UPDATE policy lets the user change *every column* in their row: salary grade, department, status, manager, bank account. Fix: employees update only permitted ESS fields (ESS-02: phone, address, emergency contacts) through column-level privileges or an ESS change-request function. Changes to bank details go through an HR-approved change request, since a changed IBAN redirects salary payments.
+2. **Audit coverage.** 13.3 applies the audit trigger to 4 tables, but Objective 9 and NFR-12 require **100% coverage**. Apply it to every business table. Make `audit_logs` truly immutable: no UPDATE or DELETE for any role, and inserts only from the trigger.
+3. **`has_role()` placement.** It must read `user_roles`, which has RLS on itself. Calling it from inside RLS policies would loop or fail unless it's `SECURITY DEFINER`. Per Supabase guidance, put it in a **non-exposed schema** (e.g. `private`), revoke EXECUTE from `public`/`anon`, base it on `auth.uid()`, and call it as `(select private.has_role(...))` in policies so it's evaluated once per query, not per row.
+4. **Dashboard views** (Section 9) must be created `WITH (security_invoker = true)`. Otherwise views bypass RLS and an HOD dashboard view could expose every department.
+5. **Payslip SELECT for "HR & Finance (all)"** grants every HR user access to the CEO's and directors' payslips. Consider a confidential payroll group (e.g. a `payroll_confidential` flag on executive employees, visible only to the HR Director and Finance Director).
+
+**Correctness:**
+
+6. **Journal balance check timing.** A normal row-level trigger fires after each line, so a balanced 10-line entry would fail on line 1. Validate when the entry changes from `draft` to `posted` (or use a deferred constraint trigger checked at commit).
+7. **Leave balance trigger** must also reverse the balance when an approved leave is cancelled, and must handle half-days and policy rules. A `leave_transactions` ledger (accrual, usage, encashment, carry-forward, adjustment) gives the history that 7.2's "leave ledger" implies; `leave_balances` becomes a running total of it.
+8. **uuid-ossp:** use built-in `gen_random_uuid()` (11.4).
+
+**Tables needed by earlier requirements but missing from 13.1:**
+
+| Requirement | Missing table(s) |
+|---|---|
+| Auth link | `employees.user_id` → `auth.users` (how a login maps to an employee) |
+| 10.2 "roles define permissions" | `permissions`, `role_permissions` |
+| ADM-03, all approval workflows | `approval_requests`, `approval_steps` (`workflows` holds definitions only) |
+| ORG-06, ATT-06 | `locations` with geo-coordinates, geofence radius, timezone (or explicit columns on `organizations`) |
+| ORG-07 | Effective-dated history for org changes |
+| REC-06 / REC-08 | `onboarding_tasks`, probation tracking |
+| 7.6 Exit workflow | `exits` / `separations`, `clearance_tasks`, `fnf_settlements` |
+| EXP-01 | `travel_requests` |
+| TRN-04 | `certifications` (with expiry) |
+| PRF-01 | `kpis` / `okrs` (or a type on `goals`) |
+| ATT-03 | Overtime rules / overtime records |
+| FIN-04 / FIN-05 | Vendor payments and customer receipts (with allocation to bills/invoices) |
+| PAY-04 | `payroll_run_lines` / payslip line items per component |
+| BEN-03 | Benefit dependents (could reuse `employee_dependents`) |
+
 ## Appendix A. Abbreviations
 
 | Term | Meaning |
