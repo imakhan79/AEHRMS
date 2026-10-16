@@ -891,6 +891,185 @@ RLS is enabled on **all** tables. Helper functions: `has_role(role)` checks whet
 | PAY-04 | `payroll_run_lines` / payslip line items per component |
 | BEN-03 | Benefit dependents (could reuse `employee_dependents`) |
 
+## 14. API Design
+
+### 14.1 API Architecture
+
+> *Content pending: only the heading has been received so far.*
+
+## 15. *(Pending: section not yet received)*
+
+## 16. Integrations
+
+> *16.1–16.3 and the start of 16.4 are pending. Only the Al Meezan VPS flow and 16.5 have been received.*
+
+### 16.4 Integration Flows *(partial)*
+
+**Al Meezan VPS** (written "AI Meezan" in source)
+
+Payroll run approved → Edge Function generates VPS contribution data → Data sent to the Al Meezan VPS API → Confirmation and log recorded (`integration_logs`)
+
+### 16.5 Statutory Reporting
+
+| Authority | Report | Frequency | Format |
+|---|---|---|---|
+| FBR | Income Tax Withholding | Monthly | Excel / CSV |
+| EOBI | Contribution Statement | Monthly | Excel / CSV |
+| PESSI | Social Security Contribution | Monthly | Excel / CSV |
+| PF | Provident Fund Statement | Monthly | Excel / CSV |
+| VPS | Pension Contribution | Monthly | Excel / CSV |
+
+### 16.6 Review Notes (raised during capture)
+
+1. **Al Meezan VPS API access.** Confirm with Al Meezan that an employer contribution API exists and that AE Global can get credentials and a spec. If not, the fallback is a generated contribution file uploaded through their employer portal, with the same `integration_logs` record. Credentials would be stored in Supabase Vault, never in code.
+2. **Send timing.** 16.4 sends VPS data when payroll is *approved*. If an approved run is later corrected or reversed before it's paid, the contribution has already gone out. Consider sending only after payroll is **posted** (or paid), and design for retries: if the API call fails, the payroll stays approved and the send is retried and alerted on ("Failed Transactions" report, 9.4).
+3. **Official formats (relates to 9.5 Q4):** "Excel / CSV" is noted. If any authority requires a fixed upload layout (e.g. FBR IRIS annex-C for withholding statements), that layout spec is needed per report.
+
+## 17. Native Finance Module Design
+
+### 17.1 Chart of Accounts Structure
+
+> *Content pending: only the heading has been received so far.*
+
+### 17.x Financial Report Views
+
+> *Sub-section number not given in the source.*
+
+All three are built from `chart_of_accounts` ⋈ `journal_entry_lines` ⋈ `journal_entries`, **posted entries only**, grouped by account.
+
+| View | Columns | Filters | Order |
+|---|---|---|---|
+| Trial Balance | account code, account name, account type, total debit, total credit, balance | Posted | Account code |
+| Profit & Loss | account type, account code, account name, amount | Types revenue + expense; posted; date range | Account type, code |
+| Balance Sheet | account type, account code, account name, balance | Types asset + liability + equity; posted; as-at date | Account type, code |
+
+### 17.y Review Notes (raised during capture)
+
+1. **Balance sheet won't balance without current-year profit.** Until the year is closed to Retained Earnings, the year's profit sits only in revenue and expense accounts, which the Balance Sheet filter excludes. Assets would then never equal Liabilities + Equity. Add a computed **"Current Year Earnings"** line (revenue − expense up to the as-at date) to equity, and a year-end closing entry that moves it into Retained Earnings (FIN-11).
+2. **Sign of the balance by account type.** Asset and expense balances are debit − credit; liability, equity and revenue balances are credit − debit. One formula for all accounts shows liabilities and revenue as negatives on the statements.
+3. **Date range and as-at date need functions, not plain views.** A PostgreSQL view can't take parameters. Use SQL functions such as `profit_and_loss(from_date, to_date, cost_center?)` and `balance_sheet(as_at)`, created `SECURITY INVOKER` so RLS still decides who can run them. Any plain views use `security_invoker = true` (13.5 note 4).
+4. **Include accounts with no activity.** Filtering `status = 'posted'` in the WHERE clause after a LEFT JOIN drops accounts with no postings. Put the posted filter in the join condition so every account appears (with zero) and the Trial Balance shows the full COA.
+5. **Parent-account roll-ups.** The COA is hierarchical (FIN-01). Statements should support subtotals by parent account (e.g. "Current Assets", "Operating Expenses"), not just leaf accounts.
+6. **Cost-center and period filters.** P&L by department or project (FIN-09) and Budget vs Actual (FIN-10) need the same functions with an optional `cost_center` filter on `journal_entry_lines`.
+
+# Part III — Implementation
+
+## 18. Implementation Roadmap
+
+### 18.1 Phased Approach
+
+Estimated total duration: **~30 weeks (7.5 months)**.
+
+| Phase | Name | Duration | Scope |
+|---|---|---|---|
+| 0 | Discovery & Planning | 2 weeks | Requirements validation, technical design finalization, team onboarding, environment setup |
+| 1 | Foundation | 3 weeks | Supabase project setup, database schema, RLS policies, Next.js scaffold, authentication & authorization, base UI components |
+| 2 | Core HR Modules | 6 weeks | Organization & positions, employee management, ESS, basic attendance, leave management, notifications |
+| 3 | Payroll & Finance | 6 weeks | Salary structures, payroll processing, statutory calculations, native finance (COA, GL), journal entries, financial reports, bank reconciliation |
+| 4 | Extended Modules | 4 weeks | Recruitment, performance, training, expenses, loans, benefits, assets, helpdesk |
+| 5 | Integrations | 2 weeks | Biometric devices, email/SMTP, bank disbursement, Al Meezan VPS, statutory reporting |
+| 6 | Testing & UAT | 3 weeks | Unit, integration, security and performance testing; UAT with business users; bug fixes |
+| 7 | Data Migration | 2 weeks | Legacy data assessment, data cleaning, import, validation & reconciliation, parallel payroll run |
+| 8 | Go-Live & Hypercare | 2 weeks | Production deployment, user training, go-live, hypercare support |
+
+### 18.2 Sprint Planning
+
+| Sprint | Weeks | Focus | Deliverables |
+|---|---|---|---|
+| 0 | 1–2 | Discovery | Requirements, design, setup |
+| 1 | 3–4 | Foundation | Database schema, authentication, base UI |
+| 2 | 5–6 | Organization & Employees | Org and employee CRUD |
+| 3 | 7–8 | ESS & Documents | Self-service, files |
+| 4 | 9–10 | Attendance & Leave | Attendance, leave |
+| 5 | 11–12 | Payroll Foundation | Salary, payroll calculation |
+| 6 | 13–14 | Payroll & Statutory | Statutory, payslips |
+| 7 | 15–16 | Finance Foundation | COA, GL, journal |
+| 8 | 17–18 | Finance Reports | Reports, AP, AR |
+| 9 | 19–20 | Recruitment & Performance | Recruitment, appraisal |
+| 10 | 21–22 | Training, Expenses, Loans | Extended modules |
+| 11 | 23–24 | Assets, Benefits, Helpdesk | Remaining modules |
+| 12 | 25–26 | Integrations | Biometric, email, bank |
+| 13 | 27–28 | Testing & UAT | Full testing |
+| 14 | 29–30 | Migration & Go-Live | Production |
+
+### 18.3 Team Structure
+
+| Role | Count | Responsibilities |
+|---|---|---|
+| Project Manager | 1 | Planning, coordination, reporting |
+| Business Analyst | 1 | Requirements, UAT coordination |
+| Solution Architect | 1 | Technical design, code review |
+| Frontend Developer | 2 | Next.js, UI/UX implementation |
+| Backend Developer | 2 | Supabase, Edge Functions, SQL |
+| Full-stack Developer | 1 | Integration, cross-cutting concerns |
+| QA Engineer | 1 | Testing, automation |
+| DevOps Engineer | 1 | Infrastructure, deployment |
+| **Total** | **10** | |
+
+### 18.4 Review Notes (raised during capture)
+
+1. **Phases and sprints don't line up.** Both total 30 weeks, but the time per area differs:
+
+   | Area | Phase plan (18.1) | Sprint plan (18.2) |
+   |---|---|---|
+   | Foundation | 3 weeks | 2 weeks (S1) |
+   | Core HR | 6 weeks | 6 weeks (S2–S4) |
+   | Payroll & Finance | 6 weeks | **8 weeks** (S5–S8) |
+   | Extended modules | 4 weeks | **6 weeks** (S9–S11) |
+   | Integrations | 2 weeks | 2 weeks (S12) |
+   | Testing & UAT | 3 weeks | **2 weeks** (S13) |
+   | Migration + Go-live | 4 weeks | **2 weeks** (S14) |
+
+   The sprint plan gives 4 more weeks to building and takes them from testing, migration and go-live, the riskiest stretch. One plan should be chosen as the baseline.
+2. **Items with no sprint:** bank reconciliation (Phase 3, missing from S7–S8), Analytics & Dashboards (module 16), Administration and workflow configuration (module 17), Al Meezan VPS and statutory reporting (Phase 5, missing from S12), and notifications (Phase 2).
+3. **A parallel payroll run needs a real month-end.** PAY-10 and Phase 7 compare a full month's payroll from the old and new systems. A 2-week migration window only works if it falls on a payroll month-end; most rollouts plan **1–2 parallel cycles** before switching off the old payroll.
+4. **Go-live timing.** Go live at the start of a payroll month, and ideally at a fiscal-year start (July, if confirmed in 6.18 Q3) for finance. Then opening balances are a clean Trial Balance as of the start date.
+5. **Opening balances to migrate (Phase 7):** opening GL Trial Balance, open AP and AR items, outstanding loan and advance balances, leave balances, year-to-date payroll and tax (needed for correct annual tax on remaining months), PF balances, and assets currently issued.
+6. **Security testing shouldn't wait for week 27.** RLS policy tests (pgTAP, 11.4) should be written with each table from Sprint 1, so access rules are proven sprint by sprint, not discovered at UAT.
+7. **Dates.** The BRD is dated December 2024 and today is October 2026. The 30-week plan needs a real start date and a target go-live month.
+
+## 19. Testing Strategy
+
+### 19.1 Testing Types
+
+> *Content pending: only the headings have been received so far.*
+
+## 20. Deployment *(section title not received)*
+
+### 20.1 Environments
+
+| Environment | Supabase | Frontend |
+|---|---|---|
+| Development | Local Supabase | Next.js dev server |
+| Staging | Supabase staging project | Vercel preview deployment |
+| Production | Supabase production project | Vercel production deployment |
+
+### 20.2 CI/CD Pipeline (GitHub Actions)
+
+| Trigger | Actions |
+|---|---|
+| Push to feature branch | Lint, type check, unit tests |
+| Push to `develop` | Integration tests → deploy to staging |
+| Push to `main` | Full test suite → deploy to production |
+
+### 20.3 Deployment Process
+
+Pre-deployment checklist → Database migration → Application deployment → Smoke testing → Rollback procedure *(if needed)*
+
+### 20.4 Rollback Strategy
+
+- **Database:** rollback using migrations
+- **Application:** Vercel instant rollback
+- **Communication plan** for stakeholders
+
+### 20.5 Review Notes (raised during capture; compared with the current setup)
+
+1. **Production currently deploys before any tests run.** Vercel's GitHub integration (set up in Oct 2026) deploys every push to `main` straight to production, in parallel with any GitHub Actions run, so a failing test wouldn't stop the deploy. To meet 20.2, either have GitHub Actions deploy production after tests pass (turning off Vercel's automatic production deploys), or protect `main` so changes only arrive via pull requests whose checks have passed.
+2. **Preview deployments share the production database today.** Preview and Production on Vercel currently point at the same Supabase project (`cvqampemdkxgbrlrbznt`). Before real data goes in, create a second Supabase project for staging, point Vercel **Preview** at it, and decide which project is production. If the region is changing (11.4 note 4), the new Mumbai project could be production and the current one staging.
+3. **No `develop` branch yet.** So far work has been pushed directly to `main`. Adopting 20.2 means creating `develop` and working through feature branches and pull requests.
+4. **Database rollback.** Vercel's instant rollback reverts the app but **not the database**. Reversing migrations rarely works once data has changed (e.g. a dropped column loses its data). Safer: make every migration backward-compatible so the previous app version still works (add first, remove later), fix forward with a new migration, and use PITR (8.1) only for disasters.
+5. **Local Supabase needs Docker** on each developer's machine (`supabase start`).
+
 ## Appendix A. Abbreviations
 
 | Term | Meaning |
