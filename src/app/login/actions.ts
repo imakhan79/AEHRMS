@@ -69,6 +69,27 @@ export async function sendMagicLink(_: ActionState, formData: FormData): Promise
   return { ok: true, message: "If an account exists for that email, a sign-in link is on its way." };
 }
 
+const DEMO_ACCOUNTS = {
+  admin: "demo.admin@demo.aehrms.app",
+  manager: "demo.manager@demo.aehrms.app",
+  employee: "demo.employee@demo.aehrms.app",
+} as const;
+
+export type DemoPersona = keyof typeof DEMO_ACCOUNTS;
+
+/** One-click demo sign-in. The password never leaves the server; off unless DEMO_MODE=true. */
+export async function demoSignIn(persona: DemoPersona): Promise<ActionState> {
+  if (process.env.DEMO_MODE !== "true" || !process.env.DEMO_PASSWORD) {
+    return { error: "Demo access is turned off." };
+  }
+  const email = DEMO_ACCOUNTS[persona];
+  if (!email) return { error: "Unknown demo account." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password: process.env.DEMO_PASSWORD });
+  if (error) return { error: "The demo account isn't available right now." };
+  redirect("/dashboard");
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();

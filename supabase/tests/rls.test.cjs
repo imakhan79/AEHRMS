@@ -126,8 +126,8 @@ const ok = (name, cond, extra = "") => {
     await as("hr");
     r = await q(`select id from employees`);
     ok("HR sees all employees", r.rows.length >= 4);
-    r = await q(`select cnic from employee_private`);
-    ok("HR reads CNIC", r.rows.length === 1);
+    r = await q(`select cnic from employee_private where employee_id=$1`, [eEmp.id]);
+    ok("HR reads CNIC", r.rows[0]?.cnic === "35202-1234567-1");
     t = await tryq(`update employees set department_id=$2 where id=$1`, [eEmp.id, dept2]);
     ok("HR can change department", !t.e && t.r.rowCount === 1, t.e?.message);
     t = await tryq(`insert into user_roles (user_id, role) values ($1,'system_admin')`, [ids.hr]);
