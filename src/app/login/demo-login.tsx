@@ -6,7 +6,8 @@ import { demoSignIn, type DemoPersona } from "./actions";
 const PERSONAS: { key: DemoPersona; name: string; role: string; sees: string }[] = [
   { key: "admin", name: "Sara Ahmed", role: "HR Manager · System Admin", sees: "Everything: employees, setup, roles, audit log" },
   { key: "manager", name: "Bilal Khan", role: "IT Manager · HOD", sees: "Own team, approvals for leave & attendance" },
-  { key: "employee", name: "Ayesha Malik", role: "Software Engineer", sees: "Self-service: check-in, leave, own profile" },
+  { key: "finance", name: "Ali Hassan", role: "Accountant · Finance", sees: "Approves, posts & pays payroll; general ledger" },
+  { key: "employee", name: "Ayesha Malik", role: "Software Engineer", sees: "Self-service: check-in, leave, payslips" },
 ];
 
 export function DemoLogin() {

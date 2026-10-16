@@ -14,6 +14,7 @@ import { AllocateForm, DependentForm, EmergencyForm, HistoryForm, PrivateForm, U
 import { DocumentsTable, EmergencyTable, mask } from "../shared";
 import { allocateDefaultLeave } from "../actions";
 import { EmployeeAttendanceCard } from "../../attendance/employee-card";
+import { EmployeePayrollCard } from "../../payroll/employee-card";
 
 export const metadata: Metadata = { title: "Employee" };
 
@@ -217,6 +218,8 @@ export default async function EmployeePage({ params }: PageProps<"/employees/[id
         </div>
 
         <EmployeeAttendanceCard employeeId={id} biometricId={e.biometric_user_id} canEdit={hr} />
+
+        {session.canReadPayroll && <EmployeePayrollCard employeeId={id} canEdit={session.isPayroll} />}
 
         {(hr || isSelf || session.roles.has("auditor")) && (
           <Card title="Personnel file">

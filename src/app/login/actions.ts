@@ -73,6 +73,7 @@ const DEMO_ACCOUNTS = {
   admin: "demo.admin@demo.aehrms.app",
   manager: "demo.manager@demo.aehrms.app",
   employee: "demo.employee@demo.aehrms.app",
+  finance: "demo.finance@demo.aehrms.app",
 } as const;
 
 export type DemoPersona = keyof typeof DEMO_ACCOUNTS;

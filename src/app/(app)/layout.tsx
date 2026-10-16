@@ -13,6 +13,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       { href: "/profile", label: "My Profile", section: "Self-service" },
       { href: "/attendance", label: "Attendance", section: "Self-service" },
       { href: "/leave", label: "Leave", section: "Self-service" },
+      { href: "/payslips", label: "My Payslips", section: "Self-service" },
     );
   } else if (approver) {
     items.push({ href: "/leave", label: "Leave approvals", section: "Self-service" });
@@ -24,6 +25,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     items.push({ href: "/attendance/reports", label: "Attendance reports", section: "Team" });
   }
   if (session.isHR) items.push({ href: "/attendance/setup", label: "Attendance setup", section: "HR" });
+  if (session.canReadPayroll) {
+    items.push(
+      { href: "/payroll", label: "Payroll runs", section: "Payroll & Finance" },
+      { href: "/payroll/fnf", label: "Final settlements", section: "Payroll & Finance" },
+      { href: "/payroll/setup", label: "Payroll setup", section: "Payroll & Finance" },
+      { href: "/finance/ledger", label: "General ledger", section: "Payroll & Finance" },
+    );
+  }
   if (hasAnyRole(session, DIRECTORY_ROLES) || session.employee) {
     items.push({ href: "/employees", label: "Employees", section: "HR" });
   }
@@ -39,7 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 flex-col bg-indigo-950 px-3 py-5 md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col bg-indigo-950 px-3 py-5 md:flex print:hidden">
         <div className="mb-8 flex items-center gap-2.5 px-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-xs font-bold text-white">AE</div>
           <div>
@@ -51,7 +60,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3 md:px-8">
+        <header className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3 md:px-8 print:hidden">
           <details className="relative md:hidden">
             <summary className="cursor-pointer list-none rounded-lg px-2 py-1 text-sm font-medium text-gray-700 ring-1 ring-gray-300">Menu</summary>
             <div className="absolute left-0 z-10 mt-2 w-56 rounded-xl bg-indigo-950 p-3 shadow-lg">

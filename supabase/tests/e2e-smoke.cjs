@@ -96,7 +96,19 @@ async function cleanup(db) {
       ["/attendance/reports", ["Daily attendance", "Monthly summary", "E2E-REP"]],
       ["/attendance/setup", ["General (09:00–17:00)", "Register device", "Manual punch"]],
       [`/attendance/export?kind=summary&month=${new Date().toISOString().slice(0, 7)}`, ['"Code"', "E2E-ADM"]],
+      ["/payroll", ["Payroll runs", "New payroll run"]],
+      ["/payroll/setup", ["Income tax slabs", "TY2027", "Statutory rates"]],
+      ["/payroll/fnf", ["Full &amp; final settlements"]],
+      ["/finance/ledger", ["Trial balance", "Recent journal entries"]],
+      ["/payslips", ["My payslips"]],
     ];
+    const latestRun = (await db.query(`select id from payroll_runs order by period_month desc limit 1`)).rows[0];
+    const anySlip = (await db.query(`select id from payslips order by created_at desc limit 1`)).rows[0];
+    if (latestRun) {
+      pages.push([`/payroll/runs/${latestRun.id}`, ["Payslips", "Actions"]]);
+      pages.push([`/payroll/runs/${latestRun.id}/export?kind=register`, ['"Net pay"']]);
+    }
+    if (anySlip) pages.push([`/payroll/payslips/${anySlip.id}`, ["Net pay", "Earnings", "Deductions"]]);
 
     // Check in through the same client path the browser uses (RLS + triggers apply).
     const { data: punch, error: pErr } = await supabase

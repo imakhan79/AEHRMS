@@ -10,11 +10,36 @@ const PERSONAS = {
   admin: { email: `demo.admin@${DOMAIN}`, code: "DEMO-001" },
   manager: { email: `demo.manager@${DOMAIN}`, code: "DEMO-002" },
   employee: { email: `demo.employee@${DOMAIN}`, code: "DEMO-003" },
+  finance: { email: `demo.finance@${DOMAIN}`, code: "DEMO-007" },
 };
+const DEMO_TAG = "DEMO data — removed by npm run demo:remove";
 
 async function remove(db) {
   const emps = (await db.query(`select id::text from employees where employee_code like 'DEMO-%'`)).rows.map((r) => r.id);
   const users = (await db.query(`select id::text from auth.users where email like $1`, [`%@${DOMAIN}`])).rows.map((r) => r.id);
+
+  // Payroll + ledger: demo runs are tagged; their journal entries (and demo loan disbursements)
+  // are posted, so the immutability guards are lifted for this cleanup only (table owner).
+  const runs = (await db.query(`select id::text, journal_entry_id::text je, payment_entry_id::text pe from payroll_runs where notes = $1`, [DEMO_TAG])).rows;
+  const loanJes = (await db.query(`select journal_entry_id::text je, id::text from loans where employee_id::text = any($1)`, [emps])).rows;
+  const jes = [...runs.flatMap((r) => [r.je, r.pe]), ...loanJes.map((l) => l.je)].filter(Boolean);
+  await db.query("begin");
+  try {
+    await db.query("alter table journal_entries disable trigger journal_entries_guard");
+    await db.query("alter table journal_entry_lines disable trigger journal_lines_guard");
+    await db.query(`delete from loan_repayments where loan_id::text = any($1)`, [loanJes.map((l) => l.id)]);
+    await db.query(`delete from payroll_runs where id::text = any($1)`, [runs.map((r) => r.id)]); // cascades payslips
+    await db.query(`delete from fnf_settlements where employee_id::text = any($1)`, [emps]);
+    await db.query(`delete from loans where employee_id::text = any($1)`, [emps]);
+    await db.query(`delete from journal_entries where id::text = any($1)`, [jes]);
+    await db.query("alter table journal_entries enable trigger journal_entries_guard");
+    await db.query("alter table journal_entry_lines enable trigger journal_lines_guard");
+    await db.query("commit");
+  } catch (e) {
+    await db.query("rollback");
+    throw e;
+  }
+  await db.query(`delete from audit_logs where record_id = any($1)`, [[...runs.map((r) => r.id), ...jes, ...loanJes.map((l) => l.id)]]);
   await db.query(`update departments set head_employee_id = null where head_employee_id::text = any($1)`, [emps]);
   await db.query(`update employees set manager_id = null where manager_id::text = any($1)`, [emps]);
   await db.query(`delete from leave_requests where employee_id::text = any($1)`, [emps]);
@@ -95,7 +120,7 @@ async function seed(db, password) {
     ["DEMO-004", "Usman", "Raza", null, "male", dept.IT, pos["DEMO-SSE"], loc.LHR, "DEMO-002", "2021-09-01"],
     ["DEMO-005", "Hamza", "Iqbal", null, "male", dept.IT, pos["DEMO-NET"], loc.ISB, "DEMO-002", "2022-05-16"],
     ["DEMO-006", "Fatima", "Noor", null, "female", dept.IT, pos["DEMO-SE"], loc.LHR, "DEMO-002", "2024-01-08"],
-    ["DEMO-007", "Ali", "Hassan", null, "male", dept.FIN, pos["DEMO-ACC"], loc.LHR, "DEMO-001", "2020-11-02"],
+    ["DEMO-007", "Ali", "Hassan", PERSONAS.finance.email, "male", dept.FIN, pos["DEMO-ACC"], loc.LHR, "DEMO-001", "2020-11-02"],
     ["DEMO-008", "Zainab", "Shah", null, "female", dept.OPS, pos["DEMO-OPS"], loc.GRW, "DEMO-001", "2022-08-22"],
     ["DEMO-009", "Imran", "Butt", null, "male", dept.ADM, pos["DEMO-ADM"], loc.GRW, "DEMO-001", "2025-06-02"],
   ];
@@ -120,6 +145,7 @@ async function seed(db, password) {
   // Roles
   await db.query(`insert into user_roles (user_id, role) values ($1,'system_admin'),($1,'hr_admin')`, [userIds.admin]);
   await db.query(`insert into user_roles (user_id, role, department_id) values ($1,'hod',$2)`, [userIds.manager, dept.IT]);
+  await db.query(`insert into user_roles (user_id, role) values ($1,'finance')`, [userIds.finance]);
 
   // Leave balances for this year
   const year = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi", year: "numeric" }).format(new Date()));
@@ -201,6 +227,52 @@ async function seed(db, password) {
   await as(userIds.manager, () =>
     db.query(`update leave_requests set status='approved', decision_comment='Get well soon' where id=$1`, [leaveId]),
   );
+
+  // ---------- Payroll: salaries, a loan, last month fully paid, this month in draft ----------
+  const basics = { "DEMO-001": 280000, "DEMO-002": 320000, "DEMO-003": 150000, "DEMO-004": 210000, "DEMO-005": 120000, "DEMO-006": 95000, "DEMO-007": 140000, "DEMO-008": 70000, "DEMO-009": 48000 };
+  const std = (await one(`select id from salary_structures where code = 'STD'`)).id;
+  const pkMonth = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Karachi" }).format(new Date()).slice(0, 7);
+  const prev = new Date(`${pkMonth}-01T00:00:00Z`);
+  prev.setUTCMonth(prev.getUTCMonth() - 1);
+  const prevMonth = prev.toISOString().slice(0, 7);
+  const existing = (await db.query(`select to_char(period_month,'YYYY-MM') m from payroll_runs where not is_parallel and to_char(period_month,'YYYY-MM') = any($1)`, [[prevMonth, pkMonth]])).rows.map((r) => r.m);
+
+  await as(userIds.admin, async () => {
+    for (const [code, basic] of Object.entries(basics)) {
+      await db.query(
+        `insert into employee_salaries (employee_id, effective_from, structure_id, basic_salary, pessi_covered, pf_member)
+         values ($1, '2025-07-01', $2, $3, $4, $5)`,
+        [emp[code], std, basic, basic <= 70000, ["DEMO-001", "DEMO-002", "DEMO-004"].includes(code)],
+      );
+    }
+    await db.query(
+      `insert into loans (employee_id, loan_type, principal, installment_amount, start_month, purpose, disbursed_on)
+       values ($1, 'loan', 120000, 10000, $2, 'Motorcycle purchase', $3)`,
+      [emp["DEMO-004"], `${prevMonth}-01`, `${prevMonth}-05`],
+    );
+  });
+
+  if (existing.length) {
+    console.log(`  (skipped demo payroll runs: real runs already exist for ${existing.join(", ")})`);
+  } else {
+    let prevRun, curRun;
+    await as(userIds.admin, async () => {
+      prevRun = (await one(`select public.payroll_create_run($1) id`, [`${prevMonth}-01`])).id;
+      await db.query(`select public.payroll_process_run($1)`, [prevRun]);
+      await db.query(`select public.payroll_transition($1, 'review', $2)`, [prevRun, DEMO_TAG]);
+    });
+    await as(userIds.finance, async () => {
+      await db.query(`select public.payroll_transition($1, 'approved')`, [prevRun]);
+      await db.query(`select public.payroll_transition($1, 'posted')`, [prevRun]);
+      await db.query(`select public.payroll_transition($1, 'paid')`, [prevRun]);
+    });
+    // This month is calculated after last month is posted, so tax uses the right YTD.
+    await as(userIds.admin, async () => {
+      curRun = (await one(`select public.payroll_create_run($1) id`, [`${pkMonth}-01`])).id;
+      await db.query(`select public.payroll_process_run($1)`, [curRun]);
+    });
+    await db.query(`update payroll_runs set notes = $1 where id = any($2)`, [DEMO_TAG, [prevRun, curRun]]);
+  }
   return { employees: Object.keys(emp).length, days: days.length };
 }
 

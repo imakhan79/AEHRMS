@@ -10,7 +10,8 @@
     "test:db": "node --env-file=.env.local supabase/tests/rls.test.cjs",
     "test:attendance": "node --env-file=.env.local supabase/tests/attendance.test.cjs",
     "demo:seed": "node --env-file=.env.local scripts/demo-data.cjs seed",
-    "demo:remove": "node --env-file=.env.local scripts/demo-data.cjs remove"
+    "demo:remove": "node --env-file=.env.local scripts/demo-data.cjs remove",
+    "test:payroll": "node --env-file=.env.local supabase/tests/payroll.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

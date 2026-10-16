@@ -1070,6 +1070,23 @@ Pre-deployment checklist → Database migration → Application deployment → S
 4. **Database rollback.** Vercel's instant rollback reverts the app but **not the database**. Reversing migrations rarely works once data has changed (e.g. a dropped column loses its data). Safer: make every migration backward-compatible so the previous app version still works (add first, remove later), fix forward with a new migration, and use PITR (8.1) only for disasters.
 5. **Local Supabase needs Docker** on each developer's machine (`supabase start`).
 
+## 21. *(Section title not received)*
+
+### 21.2 Training Materials
+
+> *Content pending: only the heading has been received so far.*
+
+## Approval and Sign-off
+
+| Role | Signature | Date |
+|---|---|---|
+| CEO / Managing Director *(approver per Document Control)* | _________________________ | _______________ |
+| HR Director | _________________________ | _______________ |
+| Finance Director | _________________________ | _______________ |
+| IT Manager | _________________________ | _______________ |
+
+> **Capture note:** the pasted source ended with the line "This response is AI-generated, for reference only." The signatories should check the requirements against business reality, especially the open questions and review notes in sections 5.4, 6.18, 7.10, 8.1, 9.5, 10.5, 11.4, 12.4, 13.5, 16.6, 17.y, 18.4 and 20.5, before signing.
+
 ## Appendix A. Abbreviations
 
 | Term | Meaning |

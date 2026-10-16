@@ -15,6 +15,12 @@ export interface Session {
   hasReports: boolean;
   isHR: boolean;
   isAdmin: boolean;
+  /** HR Admin, Finance or System Admin — can prepare payroll. */
+  isPayroll: boolean;
+  /** Finance or System Admin — can approve, post and pay. */
+  isFinance: boolean;
+  /** Payroll staff plus Executive and Auditor (read-only). */
+  canReadPayroll: boolean;
 }
 
 /**
@@ -54,6 +60,9 @@ export const getSession = cache(async (): Promise<Session | null> => {
     hasReports: (reports ?? 0) > 0,
     isHR: roles.has("hr_admin") || roles.has("system_admin"),
     isAdmin: roles.has("system_admin"),
+    isPayroll: roles.has("hr_admin") || roles.has("finance") || roles.has("system_admin"),
+    isFinance: roles.has("finance") || roles.has("system_admin"),
+    canReadPayroll: ["hr_admin", "finance", "system_admin", "executive", "auditor"].some((r) => roles.has(r as AppRole)),
   };
 });
 
