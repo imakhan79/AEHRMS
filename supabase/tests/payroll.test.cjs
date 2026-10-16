@@ -136,7 +136,7 @@ const n = (v) => Number(v);
     r = await q(`select balance, status from loans where id=$1`, [loan?.id]);
     ok("loan balance reduced to 25,000", n(r.rows[0].balance) === 25000);
     t = await tryq(`update journal_entries set description='x' where id=$1`, [je]);
-    ok("posted JE cannot be edited (no direct write grant)", !!t.e);
+    ok("posted JE cannot be edited by Finance (only drafts are editable)", !!t.e || t.r.rowCount === 0);
     await asAdmin();
     t = await tryq(`update journal_entries set description='x' where id=$1`, [je]);
     ok("posted JE immutable even for the DB owner", !!t.e, t.e?.message);

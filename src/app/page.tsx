@@ -16,7 +16,7 @@ const MODULES: { name: string; text: string; live: boolean }[] = [
   { name: "Leave", text: "Policy-checked requests, working-day calculation, holidays per location and manager → HR approvals.", live: true },
   { name: "Attendance", text: "Biometric devices, web & mobile check-in with GPS geofence and selfie, offline sync, shifts and overtime.", live: true },
   { name: "Payroll", text: "Gross-to-net with FBR income tax, EOBI, PESSI, PF and VPS; payslips, bank files, loans and final settlements.", live: true },
-  { name: "Finance & Accounting", text: "General ledger and trial balance live, with automatic payroll posting. AP, AR and bank reconciliation next.", live: false },
+  { name: "Finance & Accounting", text: "GL, journals, AP & AR with GST/WHT, bank reconciliation, budgets and full financial statements — payroll posts automatically.", live: true },
   { name: "Recruitment", text: "Requisitions, candidate pipeline, interviews, offers and onboarding.", live: false },
   { name: "Performance & Training", text: "KPIs, OKRs, appraisal cycles, training needs and certifications.", live: false },
 ];

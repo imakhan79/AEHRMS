@@ -22,11 +22,31 @@ async function remove(db) {
   // are posted, so the immutability guards are lifted for this cleanup only (table owner).
   const runs = (await db.query(`select id::text, journal_entry_id::text je, payment_entry_id::text pe from payroll_runs where notes = $1`, [DEMO_TAG])).rows;
   const loanJes = (await db.query(`select journal_entry_id::text je, id::text from loans where employee_id::text = any($1)`, [emps])).rows;
-  const jes = [...runs.flatMap((r) => [r.je, r.pe]), ...loanJes.map((l) => l.je)].filter(Boolean);
+  // Finance demo documents belong to DEMO- vendors/customers; collect their journal entries too.
+  const finJes = (await db.query(
+    `select journal_entry_id::text je from bills where vendor_id in (select id from vendors where code like 'DEMO-%') and journal_entry_id is not null
+     union all select journal_entry_id::text from vendor_payments where vendor_id in (select id from vendors where code like 'DEMO-%') and journal_entry_id is not null
+     union all select journal_entry_id::text from invoices where customer_id in (select id from customers where code like 'DEMO-%') and journal_entry_id is not null
+     union all select journal_entry_id::text from customer_receipts where customer_id in (select id from customers where code like 'DEMO-%') and journal_entry_id is not null`,
+  )).rows.map((r) => r.je);
+  const jes = [...runs.flatMap((r) => [r.je, r.pe]), ...loanJes.map((l) => l.je), ...finJes].filter(Boolean);
   await db.query("begin");
   try {
     await db.query("alter table journal_entries disable trigger journal_entries_guard");
     await db.query("alter table journal_entry_lines disable trigger journal_lines_guard");
+    for (const [tbl, trg] of [["bill_lines", "bill_lines_before"], ["invoice_lines", "invoice_lines_before"], ["payment_allocations", "payment_allocations_guard"], ["receipt_allocations", "receipt_allocations_guard"], ["budget_lines", "budget_lines_guard"]]) {
+      await db.query(`alter table ${tbl} disable trigger ${trg}`);
+    }
+    await db.query(`delete from vendor_payments where vendor_id in (select id from vendors where code like 'DEMO-%')`);
+    await db.query(`delete from customer_receipts where customer_id in (select id from customers where code like 'DEMO-%')`);
+    await db.query(`delete from bills where vendor_id in (select id from vendors where code like 'DEMO-%')`);
+    await db.query(`delete from invoices where customer_id in (select id from customers where code like 'DEMO-%')`);
+    await db.query(`delete from vendors where code like 'DEMO-%'`);
+    await db.query(`delete from customers where code like 'DEMO-%'`);
+    await db.query(`delete from budgets where name like 'DEMO %'`);
+    for (const [tbl, trg] of [["bill_lines", "bill_lines_before"], ["invoice_lines", "invoice_lines_before"], ["payment_allocations", "payment_allocations_guard"], ["receipt_allocations", "receipt_allocations_guard"], ["budget_lines", "budget_lines_guard"]]) {
+      await db.query(`alter table ${tbl} enable trigger ${trg}`);
+    }
     await db.query(`delete from loan_repayments where loan_id::text = any($1)`, [loanJes.map((l) => l.id)]);
     await db.query(`delete from payroll_runs where id::text = any($1)`, [runs.map((r) => r.id)]); // cascades payslips
     await db.query(`delete from fnf_settlements where employee_id::text = any($1)`, [emps]);
@@ -273,6 +293,50 @@ async function seed(db, password) {
     });
     await db.query(`update payroll_runs set notes = $1 where id = any($2)`, [DEMO_TAG, [prevRun, curRun]]);
   }
+
+  // ---------- Finance: vendors, customers, bills, invoices, payment, receipt, budget ----------
+  const acct = async (c) => (await one(`select id from chart_of_accounts where code = $1`, [c])).id;
+  const bankOp = (await one(`select b.id from bank_accounts b join chart_of_accounts a on a.id = b.gl_account_id where a.code = '1120'`)).id;
+  const gstIn = (await one(`select id from taxes where code = 'GST18-IN'`)).id;
+  const gstOut = (await one(`select id from taxes where code = 'GST18-OUT'`)).id;
+  const d = (day) => `${prevMonth}-${String(day).padStart(2, "0")}`;
+  let ids = {};
+  await as(userIds.admin, async () => {
+    const v1 = (await one(`insert into vendors (code, name, ntn, payment_terms_days) values ('DEMO-V01','Gulberg Properties (Pvt) Ltd','DEMO-NTN-1',15) returning id`)).id;
+    const v2 = (await one(`insert into vendors (code, name, ntn) values ('DEMO-V02','PakNet Telecom Services','DEMO-NTN-2') returning id`)).id;
+    const c1 = (await one(`insert into customers (code, name, ntn) values ('DEMO-C01','Metro Builders Ltd','DEMO-NTN-3') returning id`)).id;
+    const c2 = (await one(`insert into customers (code, name, ntn, payment_terms_days) values ('DEMO-C02','Indus Energy (Pvt) Ltd','DEMO-NTN-4',15) returning id`)).id;
+    const b1 = (await one(`insert into bills (vendor_id, vendor_invoice_no, bill_date, due_date, description) values ($1,'GP-2201',$2,$3,'Head office rent') returning id`, [v1, d(1), d(15)])).id;
+    await db.query(`insert into bill_lines (bill_id, account_id, amount, description) values ($1,$2,450000,'Office rent — Lahore HO')`, [b1, await acct("5210")]);
+    const b2 = (await one(`insert into bills (vendor_id, vendor_invoice_no, bill_date, due_date, description) values ($1,'PN-88341',$2,$3,'Internet & leased line') returning id`, [v2, d(5), d(28)])).id;
+    await db.query(`insert into bill_lines (bill_id, account_id, amount, tax_id, description) values ($1,$2,85000,$3,'Leased line 50 Mbps')`, [b2, await acct("5270"), gstIn]);
+    const i1 = (await one(`insert into invoices (customer_id, invoice_date, due_date, description) values ($1,$2,$3,'Site supervision services') returning id`, [c1, d(3), d(28)])).id;
+    await db.query(`insert into invoice_lines (invoice_id, account_id, amount, tax_id, description) values ($1,$2,1800000,$3,'Supervision — Phase 2')`, [i1, await acct("4110"), gstOut]);
+    const i2 = (await one(`insert into invoices (customer_id, invoice_date, due_date, description) values ($1,$2,$3,'Solar EPC milestone 1') returning id`, [c2, d(2), d(10)])).id;
+    await db.query(`insert into invoice_lines (invoice_id, account_id, amount, description) values ($1,$2,950000,'Milestone 1 — design approval')`, [i2, await acct("4120")]);
+    for (const b of [b1, b2]) await db.query(`select public.fin_post_bill($1)`, [b]);
+    for (const i of [i1, i2]) await db.query(`select public.fin_post_invoice($1)`, [i]);
+    const pay = (await one(`insert into vendor_payments (vendor_id, payment_date, bank_account_id, amount, reference) values ($1,$2,$3,450000,'CHQ-004512') returning id`, [v1, d(14), bankOp])).id;
+    await db.query(`insert into payment_allocations (payment_id, bill_id, amount) values ($1,$2,450000)`, [pay, b1]);
+    const rec = (await one(`insert into customer_receipts (customer_id, receipt_date, bank_account_id, amount, wht_amount, reference) values ($1,$2,$3,1062000,40000,'IBFT-77120') returning id`, [c1, d(25), bankOp])).id;
+    await db.query(`insert into receipt_allocations (receipt_id, invoice_id, amount) values ($1,$2,1062000)`, [rec, i1]);
+    await db.query(`select public.fin_post_receipt($1)`, [rec]);
+    const fy = Number(pkMonth.slice(0, 4)) + (Number(pkMonth.slice(5, 7)) >= 7 ? 1 : 0);
+    const bud = (await one(`insert into budgets (fiscal_year, name) values ($1,'DEMO operating budget') returning id`, [fy])).id;
+    for (const [code, annual] of [["5210", 5400000], ["5270", 1200000], ["5110", 32000000], ["4110", 24000000], ["4120", 12000000]]) {
+      const a = await acct(code);
+      for (let m = 0; m < 12; m++) {
+        await db.query(`insert into budget_lines (budget_id, account_id, period_start, amount) values ($1,$2,$3,$4)`,
+          [bud, a, new Date(Date.UTC(fy - 1, 6 + m, 1)).toISOString().slice(0, 10), annual / 12]);
+      }
+    }
+    ids = { pay, bud };
+  });
+  // Maker-checker: Sara prepared; Ali releases the payment and approves the budget.
+  await as(userIds.finance, async () => {
+    await db.query(`select public.fin_post_vendor_payment($1)`, [ids.pay]);
+    await db.query(`select public.fin_approve_budget($1)`, [ids.bud]);
+  });
   return { employees: Object.keys(emp).length, days: days.length };
 }
 

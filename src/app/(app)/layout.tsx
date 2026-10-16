@@ -30,7 +30,16 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       { href: "/payroll", label: "Payroll runs", section: "Payroll & Finance" },
       { href: "/payroll/fnf", label: "Final settlements", section: "Payroll & Finance" },
       { href: "/payroll/setup", label: "Payroll setup", section: "Payroll & Finance" },
-      { href: "/finance/ledger", label: "General ledger", section: "Payroll & Finance" },
+      { href: "/finance", label: "Finance overview", section: "Finance" },
+      { href: "/finance/payables", label: "Payables", section: "Finance" },
+      { href: "/finance/receivables", label: "Receivables", section: "Finance" },
+      { href: "/finance/journals", label: "Journals", section: "Finance" },
+      { href: "/finance/bank", label: "Bank reconciliation", section: "Finance" },
+      { href: "/finance/reports", label: "Reports", section: "Finance" },
+      { href: "/finance/budgets", label: "Budgets", section: "Finance" },
+      { href: "/finance/ledger", label: "Trial balance", section: "Finance" },
+      { href: "/finance/accounts", label: "Chart of accounts", section: "Finance" },
+      { href: "/finance/settings", label: "Periods & taxes", section: "Finance" },
     );
   }
   if (hasAnyRole(session, DIRECTORY_ROLES) || session.employee) {

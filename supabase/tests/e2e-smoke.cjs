@@ -101,7 +101,26 @@ async function cleanup(db) {
       ["/payroll/fnf", ["Full &amp; final settlements"]],
       ["/finance/ledger", ["Trial balance", "Recent journal entries"]],
       ["/payslips", ["My payslips"]],
+      ["/finance", ["Cash at bank", "Accounts payable"]],
+      ["/finance/payables", ["Bills", "New bill"]],
+      ["/finance/receivables", ["Invoices", "New invoice"]],
+      ["/finance/journals", ["New manual journal"]],
+      ["/finance/bank", ["Statement lines", "Import statement"]],
+      ["/finance/reports?r=pl", ["Total revenue", "Net profit"]],
+      ["/finance/reports?r=bs", ["Total assets", "Liabilities + equity"]],
+      ["/finance/reports?r=cf", ["Net change in cash"]],
+      ["/finance/reports?r=ap", ["Not due"]],
+      ["/finance/budgets", ["New budget"]],
+      ["/finance/accounts", ["Chart of accounts", "Add account"]],
+      ["/finance/settings", ["Fiscal periods", "Taxes"]],
     ];
+    for (const [table, path] of [["bills", "/finance/payables/bills/"], ["invoices", "/finance/receivables/invoices/"], ["vendor_payments", "/finance/payables/payments/"], ["journal_entries", "/finance/journals/"], ["budgets", "/finance/budgets/"]]) {
+      const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
+      if (row) pages.push([path + row.id, ["Back"].filter(() => !path.includes("journals") && !path.includes("budgets"))]);
+    }
+    const vendor = (await db.query(`select id from vendors limit 1`)).rows[0];
+    if (vendor) pages.push([`/finance/payables/pay/${vendor.id}`, ["Settle now"]]);
+    pages.push([`/finance/reports/export?r=bs&from=2026-07-01&to=${new Date().toISOString().slice(0, 10)}`, ['"Balance (PKR)"']]);
     const latestRun = (await db.query(`select id from payroll_runs order by period_month desc limit 1`)).rows[0];
     const anySlip = (await db.query(`select id from payslips order by created_at desc limit 1`)).rows[0];
     if (latestRun) {

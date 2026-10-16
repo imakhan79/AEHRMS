@@ -11,7 +11,9 @@
     "test:attendance": "node --env-file=.env.local supabase/tests/attendance.test.cjs",
     "demo:seed": "node --env-file=.env.local scripts/demo-data.cjs seed",
     "demo:remove": "node --env-file=.env.local scripts/demo-data.cjs remove",
-    "test:payroll": "node --env-file=.env.local supabase/tests/payroll.test.cjs"
+    "test:payroll": "node --env-file=.env.local supabase/tests/payroll.test.cjs",
+    "test:finance": "node --env-file=.env.local supabase/tests/finance.test.cjs",
+    "test:all": "npm run test:db && npm run test:attendance && npm run test:payroll && npm run test:finance"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
