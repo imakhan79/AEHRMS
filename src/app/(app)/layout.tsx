@@ -1,10 +1,15 @@
+import Link from "next/link";
 import { requireSession, hasAnyRole, DIRECTORY_ROLES } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { ROLE_LABELS, type AppRole } from "@/lib/types";
 import { Nav, type NavItem } from "./nav";
 import { SignOutButton } from "./sign-out-button";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await requireSession();
+  const supabase = await createClient();
+  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
+  const unread = count ?? 0;
 
   const items: NavItem[] = [{ href: "/dashboard", label: "Dashboard", section: "Overview" }];
   const approver = session.isHR || session.roles.has("hod") || session.hasReports;
@@ -14,12 +19,24 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       { href: "/attendance", label: "Attendance", section: "Self-service" },
       { href: "/leave", label: "Leave", section: "Self-service" },
       { href: "/payslips", label: "My Payslips", section: "Self-service" },
+      { href: "/expenses", label: "Expenses & travel", section: "Self-service" },
+      { href: "/loans", label: "Loans & advances", section: "Self-service" },
+      { href: "/helpdesk", label: "Helpdesk", section: "Self-service" },
     );
   } else if (approver) {
     items.push({ href: "/leave", label: "Leave approvals", section: "Self-service" });
   }
   if (approver) {
     items.push({ href: "/attendance/approvals", label: "Attendance approvals", section: "Team" });
+  }
+  if (approver || session.isFinance) {
+    items.push(
+      { href: "/expenses/approvals", label: "Expense approvals", section: "Team" },
+      { href: "/loans#approvals", label: "Loan approvals", section: "Team" },
+    );
+  }
+  if (!session.employee && (session.isHR || session.canReadPayroll)) {
+    items.push({ href: "/helpdesk?view=all", label: "Helpdesk", section: "HR" });
   }
   if (session.hasReports || hasAnyRole(session, ["hr_admin", "system_admin", "executive", "finance", "auditor", "hod"])) {
     items.push({ href: "/attendance/reports", label: "Attendance reports", section: "Team" });
@@ -84,6 +101,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <div className="text-sm font-medium text-gray-900">{session.employee?.full_name ?? session.email}</div>
               {session.employee && <div className="text-xs text-gray-500">{session.employee.employee_code}</div>}
             </div>
+            <Link href="/notifications" className="relative rounded-lg p-1.5 text-gray-600 ring-1 ring-gray-300 hover:bg-gray-50" aria-label={`Notifications (${unread} unread)`}>
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
+                <path d="M10 2a6 6 0 0 0-6 6v3.6l-1.3 2.1A.8.8 0 0 0 3.4 15h13.2a.8.8 0 0 0 .7-1.3L16 11.6V8a6 6 0 0 0-6-6Zm0 16a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 10 18Z" />
+              </svg>
+              {unread > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 rounded-full bg-red-600 px-1.5 text-[10px] font-semibold leading-4 text-white">{unread > 99 ? "99+" : unread}</span>
+              )}
+            </Link>
             <SignOutButton />
           </div>
         </header>

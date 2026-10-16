@@ -113,6 +113,12 @@ async function cleanup(db) {
       ["/finance/budgets", ["New budget"]],
       ["/finance/accounts", ["Chart of accounts", "Add account"]],
       ["/finance/settings", ["Fiscal periods", "Taxes"]],
+      ["/notifications", ["Notifications"]],
+      ["/expenses", ["My expense claims", "Request travel"]],
+      ["/expenses/approvals", ["Expense claims", "Travel requests"]],
+      ["/loans", ["My applications", "Apply"]],
+      ["/helpdesk", ["Raise a ticket"]],
+      ["/helpdesk?view=all", ["Resolved within SLA"]],
     ];
     for (const [table, path] of [["bills", "/finance/payables/bills/"], ["invoices", "/finance/receivables/invoices/"], ["vendor_payments", "/finance/payables/payments/"], ["journal_entries", "/finance/journals/"], ["budgets", "/finance/budgets/"]]) {
       const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
