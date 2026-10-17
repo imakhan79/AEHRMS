@@ -39,7 +39,11 @@
 }
 
 body {
-  background: #fafaf9;
+  background:
+    radial-gradient(1200px 500px at 100% -10%, rgba(233, 154, 34, 0.07), transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, rgba(115, 32, 27, 0.05), transparent 55%),
+    #fafaf9;
+  background-attachment: fixed;
   color: #1c1917;
   -webkit-font-smoothing: antialiased;
 }

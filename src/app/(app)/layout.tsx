@@ -105,7 +105,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-indigo-950 px-3 py-5 md:flex print:hidden">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-indigo-950 via-[#2c120f] to-[#1f0c0a] px-3 py-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)] md:flex print:hidden">
         <Link href="/dashboard" className="mb-8 block px-2" aria-label="Zicon HRMS — dashboard">
           <BrandLogo onDark priority />
           <div className="mt-2 px-1 text-[11px] font-medium tracking-wide text-stone-400">HRMS · AE Global Group</div>
@@ -114,10 +114,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur md:px-8 print:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-gray-200/70 bg-white/75 px-4 py-3 backdrop-blur-xl backdrop-saturate-150 md:px-8 print:hidden">
           <details className="relative md:hidden">
-            <summary className="flex h-10 cursor-pointer list-none items-center rounded-lg px-3 text-sm font-medium text-gray-700 ring-1 ring-gray-300">Menu</summary>
-            <div className="absolute left-0 z-40 mt-2 max-h-[75dvh] w-64 overflow-y-auto rounded-xl bg-indigo-950 p-3 shadow-xl">
+            <summary className="flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-sm font-semibold text-gray-700 ring-1 ring-gray-200 transition-colors hover:bg-gray-50">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+                <path fillRule="evenodd" d="M2 4.75A.75.75 0 0 1 2.75 4h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 4.75Zm0 5A.75.75 0 0 1 2.75 9h14.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 9.75Zm0 5a.75.75 0 0 1 .75-.75h14.5a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+              </svg>
+              Menu
+            </summary>
+            <div className="absolute left-0 z-40 mt-2 max-h-[75dvh] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl bg-gradient-to-b from-indigo-950 to-[#1f0c0a] p-3 shadow-2xl ring-1 ring-black/10">
               <Nav items={items} id="mobile" />
             </div>
           </details>
@@ -129,10 +134,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               <div className="text-sm font-semibold text-gray-900">{session.employee?.full_name ?? session.email}</div>
               {session.employee && <div className="text-xs text-gray-500">{session.employee.employee_code}</div>}
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-800" aria-hidden="true">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 text-xs font-bold text-white shadow-sm ring-2 ring-white" aria-hidden="true">
               {(session.employee?.full_name ?? session.email).split(/[\s@.]/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")}
             </div>
-            <Link href="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 ring-1 ring-gray-300 transition-colors hover:bg-gray-50" aria-label={`Notifications (${unread} unread)`}>
+            <Link href="/notifications" className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-600 ring-1 ring-gray-200 transition-colors hover:bg-gray-50 hover:text-indigo-700" aria-label={`Notifications (${unread} unread)`}>
               <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden="true">
                 <path d="M10 2a6 6 0 0 0-6 6v3.6l-1.3 2.1A.8.8 0 0 0 3.4 15h13.2a.8.8 0 0 0 .7-1.3L16 11.6V8a6 6 0 0 0-6-6Zm0 16a2.5 2.5 0 0 0 2.4-2h-4.8A2.5 2.5 0 0 0 10 18Z" />
               </svg>
@@ -143,7 +148,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             <SignOutButton />
           </div>
         </header>
-        <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none md:px-8 md:py-8">
+        <main id="main" tabIndex={-1} className="flex-1 px-4 py-6 outline-none md:px-8 md:py-10">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
