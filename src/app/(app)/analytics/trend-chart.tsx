@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { EASE_OUT } from "@/components/motion";
 import type { Trend } from "@/lib/analytics";
 
 /**
@@ -25,9 +29,12 @@ export function TrendChart({ trend }: { trend: Trend }) {
           {trend.points.map((p, i) => {
             const h = max > 0 ? Math.max((p.value / max) * 100, p.value > 0 ? 2 : 0) : 0;
             const bar = (
-              <span
-                className={`block w-full rounded-t-[4px] transition-colors ${i === trend.points.length - 1 ? "bg-indigo-600" : "bg-indigo-400 group-hover:bg-indigo-600"}`}
+              <motion.span
+                className={`block w-full origin-bottom rounded-t-[4px] transition-colors ${i === trend.points.length - 1 ? "bg-indigo-600" : "bg-indigo-400 group-hover:bg-indigo-600"}`}
                 style={{ height: `${h}%` }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.5, ease: EASE_OUT, delay: 0.1 + i * 0.025 }}
               />
             );
             return (

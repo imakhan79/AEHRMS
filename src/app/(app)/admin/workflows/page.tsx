@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader, Table, Td, buttonClass } from "@/components/ui";
 import { setLeaveTypeHr, setNotificationRule } from "../actions";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { WorkflowRuleForm, type Rule } from "../forms";
 
 export const metadata: Metadata = { title: "Workflows & notifications" };
@@ -33,11 +34,12 @@ export default async function WorkflowsPage() {
         title="Workflows & notifications"
         description="Set who approves what (ADM-03) and which notifications people receive (ADM-04). Employees without a line manager always skip the manager step."
       />
-      <div className="mb-6 grid gap-6 md:grid-cols-2">
+      <Stagger className="mb-6 grid gap-6 md:grid-cols-2">
         {(Object.keys(TITLES) as Rule["workflow"][]).map((w) => {
           const rule = byKey.get(w);
           return (
-            <Card key={w} title={TITLES[w].title} description={TITLES[w].chain}>
+            <StaggerItem key={w}>
+            <Card title={TITLES[w].title} description={TITLES[w].chain}>
               {rule && (
                 <WorkflowRuleForm
                   rule={{ ...rule, manager_threshold: rule.manager_threshold == null ? null : Number(rule.manager_threshold), hr_above_days: rule.hr_above_days == null ? null : Number(rule.hr_above_days) }}
@@ -60,9 +62,10 @@ export default async function WorkflowsPage() {
                 </div>
               )}
             </Card>
+            </StaggerItem>
           );
         })}
-      </div>
+      </Stagger>
       <Card
         title="Notification rules"
         description="Switching a category off stops new in-app notifications for everyone. Approvals still show in each approver's queue."

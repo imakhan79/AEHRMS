@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { Card, Notice, PageHeader } from "@/components/ui";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { DATASETS } from "./datasets";
 
 export const metadata: Metadata = { title: "Data export & backup" };
@@ -21,9 +22,10 @@ export default async function ExportPage() {
           aren&apos;t included. Export them from the employee record if you need them.
         </Notice>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <Stagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((g) => (
-          <Card key={g} title={g}>
+          <StaggerItem key={g}>
+          <Card title={g}>
             <ul className="-my-2 divide-y divide-gray-100">
               {DATASETS.filter((d) => d.group === g).map((d) => (
                 <li key={d.key} className="flex items-center justify-between gap-3 py-2">
@@ -35,8 +37,9 @@ export default async function ExportPage() {
               ))}
             </ul>
           </Card>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
     </>
   );
 }

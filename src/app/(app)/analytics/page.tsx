@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Card, Notice, PageHeader, Stat, Table, Td, buttonClass, cn } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
+import { Stagger, StaggerItem } from "@/components/motion";
 import { VIEWS, canReceiveDigest, defaultView, loadView, type Cell } from "@/lib/analytics";
 import { TrendChart } from "./trend-chart";
 import { SubscriptionForm } from "./subscription-form";
@@ -84,17 +85,19 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/analyt
       </nav>
 
       {data.kpis.length > 0 && (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {data.kpis.map((k) =>
-            k.href ? (
-              <Link key={k.label} href={k.href} className="block">
+        <Stagger key={view.key} className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {data.kpis.map((k) => (
+            <StaggerItem key={k.label}>
+              {k.href ? (
+                <Link href={k.href} className="block h-full">
+                  <Stat label={k.label} value={k.value} hint={k.hint} />
+                </Link>
+              ) : (
                 <Stat label={k.label} value={k.value} hint={k.hint} />
-              </Link>
-            ) : (
-              <Stat key={k.label} label={k.label} value={k.value} hint={k.hint} />
-            ),
-          )}
-        </div>
+              )}
+            </StaggerItem>
+          ))}
+        </Stagger>
       )}
 
       <div className="mb-6 grid gap-6 lg:grid-cols-3">
@@ -115,13 +118,12 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/analyt
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <Stagger key={`${view.key}-blocks`} className="grid gap-6 lg:grid-cols-2">
         {data.blocks.map((b) => (
+          <StaggerItem key={b.key} className={b.head.length > 5 ? "min-w-0 lg:col-span-2" : "min-w-0"}>
           <Card
-            key={b.key}
             title={b.title}
             description={b.description}
-            className={b.head.length > 5 ? "lg:col-span-2" : undefined}
             actions={
               <a href={exportHref(b.key)} className="text-xs font-medium text-indigo-600 hover:text-indigo-500 print:hidden" download>
                 CSV
@@ -140,8 +142,9 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/analyt
               ))}
             </Table>
           </Card>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
       <p className="mt-4 text-xs text-gray-500 print:hidden">For: {view.audience}. Figures respect your access, so managers see only their team. Click a highlighted name or tile to see the records behind it.</p>
     </>
   );
