@@ -210,7 +210,7 @@ export function DescList({ items }: { items: [string, ReactNode][] }) {
       {items.map(([k, v]) => (
         <div key={k}>
           <dt className="text-xs font-medium text-gray-500">{k}</dt>
-          <dd className="mt-0.5 text-sm text-gray-900">{v || "—"}</dd>
+          <dd className="mt-0.5 text-sm text-gray-900 [overflow-wrap:anywhere]">{v || "—"}</dd>
         </div>
       ))}
     </dl>
