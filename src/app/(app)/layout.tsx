@@ -3,6 +3,7 @@ import { requireSession, hasAnyRole, DIRECTORY_ROLES } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { BrandLogo } from "@/components/brand";
 import { ROLE_LABELS, type AppRole } from "@/lib/types";
+import { VIEWS } from "@/lib/analytics";
 import { Nav, type NavItem } from "./nav";
 import { SignOutButton } from "./sign-out-button";
 
@@ -13,6 +14,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const unread = count ?? 0;
 
   const items: NavItem[] = [{ href: "/dashboard", label: "Dashboard", section: "Overview" }];
+  if (VIEWS.some((v) => v.can(session))) items.push({ href: "/analytics", label: "Analytics", section: "Overview" });
   const approver = session.isHR || session.roles.has("hod") || session.hasReports;
   if (session.employee) {
     items.push(
@@ -82,10 +84,20 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     items.push({ href: "/employees", label: "Employees", section: "HR" });
   }
   items.push({ href: "/organization", label: "Organization", section: "HR" });
-  if (session.isAdmin) items.push({ href: "/admin/roles", label: "Users & Roles", section: "Administration" });
+  if (session.isAdmin) {
+    items.push(
+      { href: "/admin/users", label: "User accounts", section: "Administration" },
+      { href: "/admin/roles", label: "Users & Roles", section: "Administration" },
+      { href: "/admin/workflows", label: "Workflows & alerts", section: "Administration" },
+      { href: "/admin/settings", label: "System settings", section: "Administration" },
+      { href: "/admin/export", label: "Data export", section: "Administration" },
+    );
+  }
   if (hasAnyRole(session, ["system_admin", "auditor"])) {
     items.push({ href: "/admin/audit", label: "Audit Log", section: "Administration" });
   }
+
+  items.push({ href: "/account", label: "Account & password", section: "Account" });
 
   const roleNames = [...session.roles]
     .filter((r) => r !== "employee")

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ChartColumn,
+  Laptop,
   ArrowRight,
   BadgeCheck,
   Building2,
@@ -37,7 +39,9 @@ const MODULES: { name: string; text: string; live: boolean; icon: LucideIcon }[]
   { name: "Finance & Accounting", text: "GL, journals, AP & AR with GST/WHT, bank reconciliation, budgets and financial statements.", live: true, icon: Landmark },
   { name: "Expenses & travel", text: "Travel requests with advances, receipt-backed claims, manager and Finance approval, reimbursement.", live: true, icon: Receipt },
   { name: "Loans & helpdesk", text: "Online loan applications with payroll recovery; HR tickets tracked against SLA.", live: true, icon: LifeBuoy },
-  { name: "Recruitment & performance", text: "Requisitions, candidate pipeline, appraisals and training — next phase.", live: false, icon: GraduationCap },
+  { name: "Recruitment & performance", text: "Requisitions, candidate pipeline, interviews, offers, appraisals, goals and training.", live: true, icon: GraduationCap },
+  { name: "Assets, benefits & exit", text: "Asset issue and returns, benefit plans with payroll deductions, resignations and clearance.", live: true, icon: Laptop },
+  { name: "Analytics & administration", text: "Role-based dashboards with drill-down and Excel export, approval-chain and notification rules, user management.", live: true, icon: ChartColumn },
 ];
 
 const STEPS = [

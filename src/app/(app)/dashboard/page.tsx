@@ -131,7 +131,14 @@ export default async function DashboardPage() {
         )}
 
         {seesOrg && (
-          <Card title="Headcount by department">
+          <Card
+            title="Headcount by department"
+            actions={
+              <Link href="/analytics" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
+                Open analytics →
+              </Link>
+            }
+          >
             <Table head={["Department", "Employees"]} empty="No active employees yet.">
               {[...byDept.entries()]
                 .sort((a, b) => b[1] - a[1])

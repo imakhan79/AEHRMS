@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { authCallbackUrl } from "@/lib/url";
 import type { ActionState } from "@/lib/types";
 
 const credentials = z.object({
@@ -11,12 +11,7 @@ const credentials = z.object({
   password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
-async function callbackUrl() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}/auth/callback?next=/dashboard`;
-}
+const callbackUrl = () => authCallbackUrl();
 
 export async function signIn(_: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = credentials.safeParse(Object.fromEntries(formData));

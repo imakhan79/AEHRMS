@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDate, titleCase } from "@/lib/format";
 import { money } from "@/lib/payroll";
-import { PrintButton } from "../../../payroll/payslips/[id]/print-button";
+import { PrintButton } from "@/components/print-button";
 
 export const metadata: Metadata = { title: "Offer letter" };
 

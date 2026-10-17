@@ -26,6 +26,10 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/employ
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 80) : "";
   const status = typeof sp.status === "string" && (EMPLOYEE_STATUSES as string[]).includes(sp.status) ? sp.status : "";
+  // Drill-down from Analytics: ?dept=<id> or ?loc=<id>.
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const dept = typeof sp.dept === "string" && uuid.test(sp.dept) ? sp.dept : "";
+  const loc = typeof sp.loc === "string" && uuid.test(sp.loc) ? sp.loc : "";
 
   const supabase = await createClient();
   // RLS decides who appears: HR/Exec/Finance see all, managers their team, employees themselves.
@@ -40,7 +44,16 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/employ
     query = query.or(`full_name.ilike.%${term}%,employee_code.ilike.%${term}%,work_email.ilike.%${term}%`);
   }
   if (status) query = query.eq("status", status);
-  const { data } = await query;
+  if (dept) query = query.eq("department_id", dept);
+  if (loc) query = query.eq("location_id", loc);
+  const [{ data }, scope] = await Promise.all([
+    query,
+    dept
+      ? supabase.from("departments").select("name").eq("id", dept).maybeSingle()
+      : loc
+        ? supabase.from("locations").select("name").eq("id", loc).maybeSingle()
+        : Promise.resolve({ data: null }),
+  ]);
   const rows = (data ?? []) as unknown as Row[];
 
   return (
@@ -67,7 +80,17 @@ export default async function EmployeesPage({ searchParams }: PageProps<"/employ
               </option>
             ))}
           </Select>
+          {dept && <input type="hidden" name="dept" value={dept} />}
+          {loc && <input type="hidden" name="loc" value={loc} />}
           <button className={buttonClass("secondary")}>Filter</button>
+          {(dept || loc) && (
+            <span className="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 text-sm text-indigo-800">
+              {dept ? "Department" : "Location"}: {scope.data?.name ?? "Unknown"}
+              <Link href={`/employees${q || status ? `?${new URLSearchParams({ ...(q && { q }), ...(status && { status }) })}` : ""}`} className="font-medium hover:underline" aria-label="Clear filter">
+                ×
+              </Link>
+            </span>
+          )}
         </form>
         <div className="pt-5">
           <Table head={["Code", "Name", "Department", "Position", "Location", "Joined", "Status"]} empty="No employees match.">

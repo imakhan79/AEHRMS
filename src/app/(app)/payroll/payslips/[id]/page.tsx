@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { money, monthLabel, type Payslip } from "@/lib/payroll";
-import { PrintButton } from "./print-button";
+import { PrintButton } from "@/components/print-button";
 
 export const metadata: Metadata = { title: "Payslip" };
 

@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 // Handles email confirmation and magic links (PKCE `code` or `token_hash`).
+// Links sent on someone's behalf (invites, admin password resets) use the implicit flow:
+// their tokens are in the URL fragment, which only the browser sees, so /auth/confirm handles them.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -11,6 +13,10 @@ export async function GET(request: NextRequest) {
   const nextParam = searchParams.get("next") ?? "/dashboard";
   // Only allow same-site relative redirects.
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+
+  if (!code && !tokenHash) {
+    return NextResponse.redirect(new URL(`/auth/confirm?next=${encodeURIComponent(next)}`, origin));
+  }
 
   const supabase = await createClient();
   const { error } = code
