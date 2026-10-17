@@ -1,8 +1,9 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { Field, Input, Select } from "@/components/ui";
-import { addCostCenter, addDepartment, addLocation, addPosition } from "./actions";
+import { addCostCenter, addDepartment, addLocation, addPosition, updateLocationGeofence } from "./actions";
 
 type Option = { id: string; label: string };
 
@@ -121,6 +122,54 @@ export function CostCenterForm() {
         </Field>
       </div>
       <SubmitButton size="sm">Add cost center</SubmitButton>
+    </ActionForm>
+  );
+}
+
+/** Edit an office's geofence; "Use my current location" fills the coordinates while standing at the office. */
+export function GeofenceForm({ id, latitude, longitude, radius }: { id: string; latitude: number | null; longitude: number | null; radius: number }) {
+  const lat = useRef<HTMLInputElement>(null);
+  const lng = useRef<HTMLInputElement>(null);
+  const [gps, setGps] = useState<string | null>(null);
+
+  function useHere() {
+    if (!("geolocation" in navigator)) return setGps("This browser can't share its location.");
+    setGps("Getting your location…");
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        if (lat.current) lat.current.value = p.coords.latitude.toFixed(6);
+        if (lng.current) lng.current.value = p.coords.longitude.toFixed(6);
+        setGps(`Location found (±${Math.round(p.coords.accuracy)} m). Save to apply.`);
+      },
+      (e) => setGps(e.code === e.PERMISSION_DENIED ? "Location permission was denied. Allow it in the browser and try again." : "Couldn't get a GPS fix. Try again near a window."),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  }
+
+  return (
+    <ActionForm action={updateLocationGeofence} className="space-y-3">
+      <input type="hidden" name="id" value={id} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="Latitude" name={`lat_${id}`}>
+          <Input ref={lat} id={`lat_${id}`} name="latitude" type="number" step="0.000001" min={-90} max={90} defaultValue={latitude ?? ""} placeholder="31.520400" />
+        </Field>
+        <Field label="Longitude" name={`lng_${id}`}>
+          <Input ref={lng} id={`lng_${id}`} name="longitude" type="number" step="0.000001" min={-180} max={180} defaultValue={longitude ?? ""} placeholder="74.358700" />
+        </Field>
+        <Field label="Radius (m)" name={`rad_${id}`}>
+          <Input id={`rad_${id}`} name="geofence_radius_m" type="number" min={10} max={5000} defaultValue={radius} required />
+        </Field>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={useHere} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-200 transition-colors hover:bg-indigo-50">
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden="true">
+            <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+          </svg>
+          Use my current location
+        </button>
+        <SubmitButton size="sm">Save geofence</SubmitButton>
+      </div>
+      {gps && <p className="text-xs text-gray-600">{gps}</p>}
     </ActionForm>
   );
 }

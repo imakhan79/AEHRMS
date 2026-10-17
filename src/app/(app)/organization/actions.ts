@@ -80,3 +80,26 @@ export async function addCostCenter(_: ActionState, formData: FormData): Promise
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   return insert("cost_centers", parsed.data, "Cost center");
 }
+
+/** Office coordinates + radius used to auto-verify web/mobile check-ins (ATT-04). */
+export async function updateLocationGeofence(_: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireSession();
+  if (!session.isHR) return { error: "Only HR can change office locations." };
+  const parsed = z
+    .object({
+      id: z.uuid(),
+      latitude: z.union([z.literal("").transform(() => null), z.coerce.number().min(-90).max(90)]),
+      longitude: z.union([z.literal("").transform(() => null), z.coerce.number().min(-180).max(180)]),
+      geofence_radius_m: z.coerce.number().int().min(10, "Radius must be at least 10 m.").max(5000, "Radius can be at most 5,000 m."),
+    })
+    .safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { id, latitude, longitude, geofence_radius_m } = parsed.data;
+  if ((latitude == null) !== (longitude == null)) return { error: "Enter both latitude and longitude, or clear both." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("locations").update({ latitude, longitude, geofence_radius_m }).eq("id", id);
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/organization");
+  revalidatePath("/attendance");
+  return { ok: true, message: latitude == null ? "Geofence cleared — check-ins here need manager verification." : "Geofence saved. Check-ins inside it are verified automatically." };
+}

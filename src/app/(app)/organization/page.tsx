@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, PageHeader, Table, Td } from "@/components/ui";
 import { titleCase } from "@/lib/format";
 import type { Department, Location, Position } from "@/lib/types";
-import { CostCenterForm, DepartmentForm, LocationForm, PositionForm } from "./forms";
+import { CostCenterForm, DepartmentForm, GeofenceForm, LocationForm, PositionForm } from "./forms";
 
 export const metadata: Metadata = { title: "Organization" };
 
@@ -100,6 +100,25 @@ export default async function OrganizationPage() {
               ))}
             </Table>
           </Card>
+
+          {session.isHR && (
+            <Card
+              title="Attendance geofences"
+              description="Check-ins within the radius of an office are verified automatically. Stand at the office and use your current location for accuracy."
+            >
+              <div className="space-y-5 divide-y divide-gray-100">
+                {((locations.data ?? []) as Location[]).map((l) => (
+                  <div key={l.id} className="pt-5 first:pt-0">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-gray-900">{l.name}</div>
+                      {l.latitude != null ? <Badge tone="green">Geofence on</Badge> : <Badge tone="amber">Not set</Badge>}
+                    </div>
+                    <GeofenceForm id={l.id} latitude={l.latitude} longitude={l.longitude} radius={l.geofence_radius_m} />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
 
         <div className="space-y-6">

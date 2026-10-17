@@ -48,13 +48,15 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
       .eq("employee_id", emp.id)
       .order("created_at", { ascending: false })
       .limit(20),
-    supabase.from("employees").select("locations(name, latitude)").eq("id", emp.id).single(),
+    supabase.from("employees").select("locations(name, latitude, longitude, geofence_radius_m)").eq("id", emp.id).single(),
   ]);
 
   const punches = (todayPunches.data ?? []) as Punch[];
   const valid = punches.filter((p) => p.verification !== "rejected");
   const nextType = valid.at(-1)?.punch_type === "in" ? "out" : "in";
-  const loc = (me.data?.locations as unknown as { name: string; latitude: number | null } | null) ?? null;
+  const loc = (me.data?.locations as unknown as { name: string; latitude: number | null; longitude: number | null; geofence_radius_m: number } | null) ?? null;
+  const firstIn = valid.find((p) => p.punch_type === "in")?.punch_time ?? null;
+  const lastOut = valid.findLast((p) => p.punch_type === "out")?.punch_time ?? null;
   const rows = (days.data ?? []) as AttendanceDay[];
   const count = (s: string) => rows.filter((r) => r.status === s).length;
 
@@ -65,7 +67,13 @@ export default async function AttendancePage({ searchParams }: PageProps<"/atten
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card title="Today">
-            <MarkAttendance employeeId={emp.id} nextType={nextType} locationHasGeofence={loc?.latitude != null} />
+            <MarkAttendance
+              employeeId={emp.id}
+              nextType={nextType}
+              firstIn={firstIn}
+              lastOut={lastOut}
+              office={loc ? { name: loc.name, latitude: loc.latitude == null ? null : Number(loc.latitude), longitude: loc.longitude == null ? null : Number(loc.longitude), radius: loc.geofence_radius_m } : null}
+            />
             {punches.length > 0 && (
               <ul className="mt-5 space-y-1.5 border-t border-gray-100 pt-4 text-sm">
                 {punches.map((p) => (
