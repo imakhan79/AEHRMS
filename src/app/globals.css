@@ -70,3 +70,14 @@ summary,
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * Tailwind grid columns are minmax(0, 1fr), but grid items default to min-width: auto,
+ * so a wide table spilled out of its column and over the neighbouring card.
+ * Letting items shrink keeps them in their track; tables scroll inside their own wrapper.
+ */
+@layer base {
+  .grid > * {
+    min-width: 0;
+  }
+}
