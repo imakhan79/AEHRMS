@@ -1,5 +1,5 @@
 # Business Requirements Document (BRD)
-## Integrated HRMS with Native Finance & Accounting — AE Global Group of Companies
+## Integrated HRMS with Native Finance & Accounting — iTANZ
 
 > Captured from the BRD as pasted by the client, section by section. Remaining sections pending.
 
@@ -7,7 +7,7 @@
 
 | Field | Value |
 |---|---|
-| Client | AE Global Group of Companies |
+| Client | iTANZ |
 | System | Integrated Human Resource Management System (HRMS) with Native Finance & Accounting |
 | Tech stack | Next.js 14+ (frontend); Supabase — database, auth, storage, edge functions (backend) |
 | Finance & accounting | Built natively on Supabase PostgreSQL; no external ERP integration |
@@ -22,7 +22,7 @@
 
 ## 2. Executive Summary
 
-AE Global Group of Companies requires a centralized, scalable HRMS that digitizes the complete employee lifecycle and provides native Finance & Accounting capabilities.
+iTANZ requires a centralized, scalable HRMS that digitizes the complete employee lifecycle and provides native Finance & Accounting capabilities.
 
 - **Frontend:** Next.js — web plus a mobile-responsive Progressive Web App (PWA).
 - **Backend:** Supabase — PostgreSQL with Row Level Security, real-time subscriptions, built-in auth with RBAC support, Edge Functions (serverless compute), Storage (document management) and the Realtime API (notifications).
@@ -94,7 +94,7 @@ AE Global Group of Companies requires a centralized, scalable HRMS that digitize
 
 | Dimension | Coverage |
 |---|---|
-| Users | All AE Global employees, managers, HR, Finance, Executives |
+| Users | All iTANZ employees, managers, HR, Finance, Executives |
 | Locations | Lahore Head Office, Gujranwala, Islamabad, regional and site offices |
 | Devices | Desktop browsers; mobile browsers (PWA); biometric devices |
 | Data | Employee, attendance, payroll, finance, recruitment, performance |
@@ -495,7 +495,7 @@ Payroll run approved → Journal entry auto-generated → JE posted → GL updat
 
 1. **Supabase plan determines backups (NFR-14 to NFR-16).** Free-plan projects get **no automatic backups**. Daily backups are kept for 7 days on Pro, 14 days on Team and 30 days on Enterprise. PITR is a paid add-on (Pro and above, needs at least Small compute) with a worst-case RPO of about 2 minutes, which comfortably meets the < 1 hour target. Enabling PITR stops daily backups. To reach "30 days + monthly archives" on Pro or Team, add a scheduled `pg_dump` to off-site storage. **Action: confirm which plan project `cvqampemdkxgbrlrbznt` is on.**
 2. **99.9% uptime (NFR-06)** is a design target. A contractual uptime SLA from Supabase depends on the plan tier; confirm with Supabase before relying on it.
-3. **SSO (NFR-08):** Supabase supports SAML 2.0 SSO, off by default. Which identity provider is AE Global using (e.g. Microsoft 365 / Entra ID, Google Workspace)?
+3. **SSO (NFR-08):** Supabase supports SAML 2.0 SSO, off by default. Which identity provider is iTANZ using (e.g. Microsoft 365 / Entra ID, Google Workspace)?
 4. **PII column encryption (NFR-13).** Encrypting CNIC, bank account and IBAN with pgcrypto needs a key stored outside the table (Supabase Vault or a server-side secret). Encrypted columns can't be searched or checked for uniqueness directly, so CNIC uniqueness (EMP-05) will use a separate hash column. Salaries stay unencrypted so payroll and reports can calculate on them; RLS restricts who can read them.
 5. **ISR caching (NFR-01).** ISR/CDN caching will be used only for pages that contain no personal data. Pages tied to a logged-in user are rendered per request, so one user is never served another user's session or data (Supabase SSR guidance).
 6. **Read replicas and partitioning (NFR-04)** aren't needed at 500 employees. Only high-volume tables (attendance punches, `audit_logs`) will be designed so they can be partitioned later.
@@ -921,7 +921,7 @@ Payroll run approved → Edge Function generates VPS contribution data → Data 
 
 ### 16.6 Review Notes (raised during capture)
 
-1. **Al Meezan VPS API access.** Confirm with Al Meezan that an employer contribution API exists and that AE Global can get credentials and a spec. If not, the fallback is a generated contribution file uploaded through their employer portal, with the same `integration_logs` record. Credentials would be stored in Supabase Vault, never in code.
+1. **Al Meezan VPS API access.** Confirm with Al Meezan that an employer contribution API exists and that iTANZ can get credentials and a spec. If not, the fallback is a generated contribution file uploaded through their employer portal, with the same `integration_logs` record. Credentials would be stored in Supabase Vault, never in code.
 2. **Send timing.** 16.4 sends VPS data when payroll is *approved*. If an approved run is later corrected or reversed before it's paid, the contribution has already gone out. Consider sending only after payroll is **posted** (or paid), and design for retries: if the API call fails, the payroll stays approved and the send is retried and alerted on ("Failed Transactions" report, 9.4).
 3. **Official formats (relates to 9.5 Q4):** "Excel / CSV" is noted. If any authority requires a fixed upload layout (e.g. FBR IRIS annex-C for withholding statements), that layout spec is needed per report.
 
