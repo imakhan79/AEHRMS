@@ -87,10 +87,7 @@ export default async function HomePage() {
         <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_70%_0%,_#fdf3e2_0%,_transparent_60%),radial-gradient(ellipse_60%_50%_at_0%_10%,_#fae8e6_0%,_transparent_60%)]" />
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 lg:grid-cols-2 lg:pt-20">
           <FadeIn>
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-amber" aria-hidden="true" />
-              iTANZ · Lahore · Gujranwala · Islamabad
-            </p>
+            <BrandLogo priority className="mb-6 max-h-12" />
             <h1 className="text-4xl font-extrabold tracking-tight text-balance text-gray-900 sm:text-5xl">
               One system for your people, <span className="text-indigo-700">their time</span> and <span className="text-indigo-700">their pay.</span>
             </h1>

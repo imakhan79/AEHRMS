@@ -5,7 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { money, monthLabel, type Payslip } from "@/lib/payroll";
 import { PrintButton } from "@/components/print-button";
-import { ClientLogo } from "@/components/brand";
+import { BrandLogo } from "@/components/brand";
 
 export const metadata: Metadata = { title: "Payslip" };
 
@@ -46,7 +46,7 @@ export default async function PayslipPage({ params }: PageProps<"/payroll/paysli
       <article className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <header className="flex items-start justify-between border-b border-gray-200 pb-5">
           <div>
-            <ClientLogo className="max-h-10" />
+            <BrandLogo className="max-h-10" />
             <div className="mt-2 text-sm text-gray-500">Payslip — {period}</div>
             {isDraft && <div className="mt-1 text-xs font-semibold uppercase text-amber-700">Draft — not final</div>}
           </div>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fmtDate, titleCase } from "@/lib/format";
 import { money } from "@/lib/payroll";
 import { PrintButton } from "@/components/print-button";
-import { ClientLogo } from "@/components/brand";
+import { BrandLogo } from "@/components/brand";
 
 export const metadata: Metadata = { title: "Offer letter" };
 
@@ -33,7 +33,7 @@ export default async function OfferLetterPage({ params }: PageProps<"/recruitmen
       <article className="space-y-4 rounded-xl border border-gray-200 bg-white p-10 text-[15px] leading-relaxed text-gray-800 shadow-sm print:border-0 print:p-0 print:shadow-none">
         <div className="flex items-start justify-between border-b border-gray-200 pb-4">
           <div>
-            <ClientLogo className="max-h-12" />
+            <BrandLogo className="max-h-12" />
             <div className="text-sm text-gray-500">Human Resources</div>
           </div>
           <div className="text-right text-sm text-gray-500">Date: {fmtDate(o.offer_date)}</div>

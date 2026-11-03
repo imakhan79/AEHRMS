@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSession, hasAnyRole, DIRECTORY_ROLES } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { BrandLogo, ClientLogo } from "@/components/brand";
+import { BrandLogo } from "@/components/brand";
 import { ROLE_LABELS, type AppRole } from "@/lib/types";
 import { VIEWS } from "@/lib/analytics";
 import { Nav, type NavItem } from "./nav";
@@ -108,7 +108,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-indigo-950 via-[#2c120f] to-[#1f0c0a] px-3 py-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)] md:flex print:hidden">
         <Link href="/dashboard" className="mb-8 block px-2" aria-label="Zicon HRMS — dashboard">
           <BrandLogo onDark priority />
-          <div className="mt-3 flex items-center gap-2 px-1 text-[11px] font-medium tracking-wide text-stone-400">HRMS for <ClientLogo onDark className="max-h-5" /></div>
+          <div className="mt-2 px-1 text-[11px] font-medium tracking-wide text-stone-400">HRMS</div>
         </Link>
         <Nav items={items} id="side" />
       </aside>
