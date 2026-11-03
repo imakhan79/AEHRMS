@@ -250,7 +250,7 @@ export function HireForm({ candidateId }: { candidateId: string }) {
   return (
     <ActionForm action={A.hireCandidate.bind(null, candidateId)} className="flex flex-wrap items-end gap-2">
       <Field label="New employee code" name="hr_code">
-        <Input id="hr_code" name="employee_code" required placeholder="AEG-0101" className="w-40" />
+        <Input id="hr_code" name="employee_code" required placeholder="ITANZ-0101" className="w-40" />
       </Field>
       <SubmitButton variant="success">Hire &amp; create employee</SubmitButton>
     </ActionForm>

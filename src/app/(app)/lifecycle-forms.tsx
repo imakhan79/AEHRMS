@@ -22,7 +22,7 @@ export function AssetForm({ locations }: { locations: Option[] }) {
     <ActionForm action={A.addAsset} resetOnSuccess className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Asset tag" name="as_tag">
-          <Input id="as_tag" name="asset_tag" required placeholder="AEG-LAP-0012" />
+          <Input id="as_tag" name="asset_tag" required placeholder="ITANZ-LAP-0012" />
         </Field>
         <Field label="Category" name="as_cat">
           <Select id="as_cat" name="category" defaultValue="laptop">

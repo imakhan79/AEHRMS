@@ -45,7 +45,7 @@ export function EmployeeForm({ employee, options }: { employee?: Employee; optio
     <ActionForm action={saveEmployee.bind(null, e?.id ?? null)} className="space-y-6">
       <Section title="Identity">
         <Field label="Employee code *" name="employee_code">
-          <Input id="employee_code" name="employee_code" required defaultValue={v("employee_code")} placeholder="AEG-0001" />
+          <Input id="employee_code" name="employee_code" required defaultValue={v("employee_code")} placeholder="ITANZ-0001" />
         </Field>
         <Field label="First name *" name="first_name">
           <Input id="first_name" name="first_name" required defaultValue={v("first_name")} />
