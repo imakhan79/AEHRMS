@@ -18,3 +18,18 @@ export function BrandLogo({ className, onDark = false, priority = false }: { cla
   );
   return onDark ? <span className="inline-flex rounded-lg bg-white px-2.5 py-1.5 shadow-sm">{img}</span> : img;
 }
+
+/** iTANZ client logo (white background artwork, same treatment as BrandLogo on dark surfaces). */
+export function ClientLogo({ className, onDark = false, priority = false }: { className?: string; onDark?: boolean; priority?: boolean }) {
+  const img = (
+    <Image
+      src="/itanz-logo.jpeg"
+      alt="iTANZ"
+      width={400}
+      height={142}
+      priority={priority}
+      className={cn("h-auto w-auto", onDark ? "max-h-7" : "max-h-10", className)}
+    />
+  );
+  return onDark ? <span className="inline-flex rounded-lg bg-white px-2.5 py-1.5 shadow-sm">{img}</span> : img;
+}

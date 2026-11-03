@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <BrandLogo priority className="max-h-14" />
           </Link>
           <h1 className="text-xl font-bold text-gray-900">Sign in to HRMS</h1>
-          <p className="mt-1 text-sm text-gray-500">AE Global Group · use your work account</p>
+          <p className="mt-1 text-sm text-gray-500">iTANZ · use your work account</p>
         </div>
         <div className="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <LoginForm initialError={typeof error === "string" ? error : undefined} />

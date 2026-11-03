@@ -27,7 +27,7 @@ import { FadeIn, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/mo
 export const metadata: Metadata = {
   title: "Zicon HRMS — HR, attendance, payroll & finance in one place",
   description:
-    "Integrated HR management by Zicon Technology for AE Global Group: employee records, self-service, leave, GPS & biometric attendance, payroll with FBR/EOBI, and native finance.",
+    "Integrated HR management by Zicon Technology for iTANZ: employee records, self-service, leave, GPS & biometric attendance, payroll with FBR/EOBI, and native finance.",
 };
 
 const MODULES: { name: string; text: string; live: boolean; icon: LucideIcon }[] = [
@@ -89,7 +89,7 @@ export default async function HomePage() {
           <FadeIn>
             <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-amber" aria-hidden="true" />
-              AE Global Group · Lahore · Gujranwala · Islamabad
+              iTANZ · Lahore · Gujranwala · Islamabad
             </p>
             <h1 className="text-4xl font-extrabold tracking-tight text-balance text-gray-900 sm:text-5xl">
               One system for your people, <span className="text-indigo-700">their time</span> and <span className="text-indigo-700">their pay.</span>
@@ -239,7 +239,7 @@ export default async function HomePage() {
 
       <footer className="border-t border-gray-100">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-gray-500 sm:px-6">
-          <span>© {new Date().getFullYear()} Zicon Technology · HRMS for AE Global Group of Companies</span>
+          <span>© {new Date().getFullYear()} Zicon Technology · HRMS for iTANZ</span>
           <BrandLogo className="max-h-6 opacity-80" />
         </div>
       </footer>

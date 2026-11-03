@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Zicon HRMS — AE Global",
+    name: "Zicon HRMS — iTANZ",
     short_name: "Zicon HRMS",
     description: "Attendance, leave, payroll and self-service",
     start_url: "/attendance",
