@@ -115,7 +115,7 @@ export function Nav({ items, id = "nav" }: { items: NavItem[]; id?: string }) {
     <nav aria-label="Main" className="space-y-6">
       {sections.map((section) => (
         <div key={section}>
-          <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-stone-400">{section}</div>
+          <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{section}</div>
           <ul className="space-y-0.5">
             {items
               .filter((i) => i.section === section)
@@ -127,7 +127,7 @@ export function Nav({ items, id = "nav" }: { items: NavItem[]; id?: string }) {
                     {active && (
                       <motion.span
                         layoutId={`${id}-active`}
-                        className="absolute inset-0 rounded-lg bg-white/10 ring-1 ring-white/10 before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-[#e99a22]"
+                        className="absolute inset-0 rounded-lg bg-white/10 ring-1 ring-white/10 before:absolute before:inset-y-1.5 before:left-0 before:w-1 before:rounded-full before:bg-[#ebe82b]"
                         transition={{ type: "spring", stiffness: 500, damping: 40 }}
                         aria-hidden="true"
                       />
@@ -137,10 +137,10 @@ export function Nav({ items, id = "nav" }: { items: NavItem[]; id?: string }) {
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
-                        active ? "text-white" : "text-stone-300 hover:bg-white/5 hover:text-white",
+                        active ? "text-white" : "text-slate-300 hover:bg-white/5 hover:text-white",
                       )}
                     >
-                      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[#e99a22]" : "text-stone-400")} aria-hidden="true" strokeWidth={1.75} />
+                      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[#ebe82b]" : "text-slate-400")} aria-hidden="true" strokeWidth={1.75} />
                       {item.label}
                     </Link>
                   </li>

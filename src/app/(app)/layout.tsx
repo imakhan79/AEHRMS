@@ -105,10 +105,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-indigo-950 via-[#2c120f] to-[#1f0c0a] px-3 py-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)] md:flex print:hidden">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-indigo-950 via-[#0b2b3a] to-[#071c26] px-3 py-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.06)] md:flex print:hidden">
         <Link href="/dashboard" className="mb-8 block px-2" aria-label="Zicon HRMS — dashboard">
           <BrandLogo onDark priority />
-          <div className="mt-2 px-1 text-[11px] font-medium tracking-wide text-stone-400">HRMS</div>
+          <div className="mt-2 px-1 text-[11px] font-medium tracking-wide text-slate-400">HRMS</div>
         </Link>
         <Nav items={items} id="side" />
       </aside>
@@ -122,7 +122,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
               </svg>
               Menu
             </summary>
-            <div className="absolute left-0 z-40 mt-2 max-h-[75dvh] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl bg-gradient-to-b from-indigo-950 to-[#1f0c0a] p-3 shadow-2xl ring-1 ring-black/10">
+            <div className="absolute left-0 z-40 mt-2 max-h-[75dvh] w-[min(18rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl bg-gradient-to-b from-indigo-950 to-[#071c26] p-3 shadow-2xl ring-1 ring-black/10">
               <Nav items={items} id="mobile" />
             </div>
           </details>

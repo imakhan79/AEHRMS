@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const demo = process.env.DEMO_MODE === "true";
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(ellipse_at_top,_#fdf3e2_0%,_#fafaf9_55%)] px-4 py-12">
+    <main className="flex min-h-dvh items-center justify-center bg-[radial-gradient(ellipse_at_top,_#fbfbe2_0%,_#f9fafb_55%)] px-4 py-12">
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <Link href="/" className="mb-5" aria-label="Zicon HRMS home">

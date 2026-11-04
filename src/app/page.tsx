@@ -84,7 +84,7 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_70%_0%,_#fdf3e2_0%,_transparent_60%),radial-gradient(ellipse_60%_50%_at_0%_10%,_#fae8e6_0%,_transparent_60%)]" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_80%_60%_at_70%_0%,_#fbfbe2_0%,_transparent_60%),radial-gradient(ellipse_60%_50%_at_0%_10%,_#ddf0f7_0%,_transparent_60%)]" />
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-14 sm:px-6 lg:grid-cols-2 lg:pt-20">
           <FadeIn>
             <BrandLogo priority className="mb-6 max-h-12" />
@@ -110,7 +110,7 @@ export default async function HomePage() {
 
           {/* Product preview in the real UI vocabulary */}
           <FadeIn delay={0.15} y={24}>
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_24px_60px_-20px_rgba(115,32,27,0.25)]">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-[0_24px_60px_-20px_rgba(24,120,160,0.25)]">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-gray-900">Welcome, Bilal</div>
@@ -187,7 +187,7 @@ export default async function HomePage() {
                   </div>
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
-                      m.live ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" : "bg-brand-amber-soft text-amber-800 ring-amber-600/20"
+                      m.live ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" : "bg-brand-yellow-soft text-amber-800 ring-amber-600/20"
                     }`}
                   >
                     {m.live ? "Live" : "Next"}
@@ -205,15 +205,15 @@ export default async function HomePage() {
         <Reveal className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-3">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Private by design</h2>
-            <p className="mt-3 text-stone-300">Access rules live in the database itself, so no screen or API call can show data a role isn&apos;t allowed to see.</p>
+            <p className="mt-3 text-slate-300">Access rules live in the database itself, so no screen or API call can show data a role isn&apos;t allowed to see.</p>
           </div>
           <ul className="grid gap-6 text-sm sm:grid-cols-2 lg:col-span-2">
             {TRUST.map(([Icon, t, d]) => (
               <li key={t} className="flex gap-3">
-                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-amber" aria-hidden="true" strokeWidth={1.75} />
+                <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-yellow" aria-hidden="true" strokeWidth={1.75} />
                 <div>
                   <div className="font-semibold">{t}</div>
-                  <p className="mt-1 leading-relaxed text-stone-300">{d}</p>
+                  <p className="mt-1 leading-relaxed text-slate-300">{d}</p>
                 </div>
               </li>
             ))}

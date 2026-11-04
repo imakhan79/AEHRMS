@@ -7,7 +7,7 @@ export function cn(...classes: (string | false | null | undefined)[]) {
 
 const buttonVariants = {
   primary:
-    "bg-gradient-to-b from-indigo-600 to-indigo-700 text-white shadow-[0_1px_2px_rgba(64,19,16,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-indigo-500 hover:to-indigo-600 hover:shadow-[0_4px_12px_-2px_rgba(115,32,27,0.35)]",
+    "bg-gradient-to-b from-indigo-600 to-indigo-700 text-white shadow-[0_1px_2px_rgba(14,59,79,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-indigo-500 hover:to-indigo-600 hover:shadow-[0_4px_12px_-2px_rgba(24,120,160,0.35)]",
   secondary: "bg-white text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-50 hover:ring-gray-300",
   danger: "bg-white text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-50 hover:ring-red-300",
   success: "bg-gradient-to-b from-emerald-500 to-emerald-600 text-white shadow-sm hover:from-emerald-400 hover:to-emerald-500",
@@ -35,7 +35,7 @@ export function PageHeader({
   return (
     <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <div className="mb-2.5 h-1 w-10 rounded-full bg-gradient-to-r from-indigo-700 to-brand-amber" aria-hidden="true" />
+        <div className="mb-2.5 h-1 w-10 rounded-full bg-gradient-to-r from-indigo-700 to-brand-yellow" aria-hidden="true" />
         <h1 className="text-2xl font-bold tracking-tight text-balance text-gray-900 sm:text-[1.75rem]">{title}</h1>
         {description && <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-gray-500">{description}</p>}
       </div>
@@ -60,7 +60,7 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(28,25,23,0.04),0_1px_3px_rgba(28,25,23,0.03)] transition-shadow duration-300 hover:shadow-[0_2px_4px_rgba(28,25,23,0.04),0_12px_32px_-12px_rgba(28,25,23,0.12)]",
+        "rounded-2xl border border-gray-200/80 bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04),0_1px_3px_rgba(17,24,39,0.03)] transition-shadow duration-300 hover:shadow-[0_2px_4px_rgba(17,24,39,0.04),0_12px_32px_-12px_rgba(17,24,39,0.12)]",
         className,
       )}
     >
@@ -82,7 +82,7 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
   return (
     <StatCard>
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500">
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-amber" aria-hidden="true" />
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-yellow" aria-hidden="true" />
         {label}
       </div>
       <div className="mt-3 text-[1.625rem] font-bold leading-tight tabular-nums tracking-tight text-gray-900 [overflow-wrap:anywhere]">{value}</div>
@@ -96,7 +96,7 @@ const badgeTones = {
   green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
   amber: "bg-amber-50 text-amber-800 ring-amber-600/20",
   red: "bg-red-50 text-red-700 ring-red-600/20",
-  blue: "bg-blue-50 text-blue-700 ring-blue-600/20",
+  blue: "bg-indigo-50 text-indigo-700 ring-indigo-600/20",
 } as const;
 
 export function Badge({ tone = "gray", children }: { tone?: keyof typeof badgeTones; children: ReactNode }) {
@@ -144,7 +144,7 @@ export function Label({ children, htmlFor }: { children: ReactNode; htmlFor?: st
 }
 
 const fieldClass =
-  "block w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-[0_1px_2px_rgba(28,25,23,0.04)] transition-colors placeholder:text-gray-400 hover:border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-50 disabled:text-gray-500";
+  "block w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-colors placeholder:text-gray-400 hover:border-gray-300 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 disabled:bg-gray-50 disabled:text-gray-500";
 
 export function Input(props: ComponentProps<"input">) {
   return <input {...props} className={cn(fieldClass, props.className)} />;
@@ -230,7 +230,7 @@ export function DescList({ items }: { items: [string, ReactNode][] }) {
 export function Notice({ tone = "amber", children }: { tone?: "amber" | "blue" | "red"; children: ReactNode }) {
   const tones = {
     amber: "border-amber-200 bg-amber-50 text-amber-900",
-    blue: "border-blue-200 bg-blue-50 text-blue-900",
+    blue: "border-indigo-200 bg-indigo-50 text-indigo-900",
     red: "border-red-200 bg-red-50 text-red-900",
   };
   return <div className={cn("rounded-xl border px-4 py-3 text-sm leading-relaxed", tones[tone])}>{children}</div>;

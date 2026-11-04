@@ -75,10 +75,10 @@ export function Reveal({ children, className, delay = 0 }: { children: ReactNode
 export function StatCard({ children }: { children: ReactNode }) {
   return (
     <motion.div
-      className="relative h-full overflow-hidden rounded-2xl border border-gray-200/80 bg-gradient-to-br from-white via-white to-indigo-50/50 p-5 shadow-[0_1px_2px_rgba(28,25,23,0.04)] before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-indigo-700 before:via-indigo-500 before:to-brand-amber before:opacity-70"
+      className="relative h-full overflow-hidden rounded-2xl border border-gray-200/80 bg-gradient-to-br from-white via-white to-indigo-50/50 p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04)] before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-gradient-to-r before:from-indigo-700 before:via-indigo-500 before:to-brand-yellow before:opacity-70"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -3, boxShadow: "0 14px 32px -12px rgba(115,32,27,0.22)" }}
+      whileHover={{ y: -3, boxShadow: "0 14px 32px -12px rgba(24,120,160,0.22)" }}
       transition={{ duration: 0.35, ease: EASE_OUT }}
     >
       {children}

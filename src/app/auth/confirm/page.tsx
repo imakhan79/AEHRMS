@@ -9,7 +9,7 @@ export default async function ConfirmPage({ searchParams }: PageProps<"/auth/con
   const nextParam = typeof sp.next === "string" ? sp.next : "/dashboard";
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-stone-50 px-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-gray-50 px-4">
       <BrandLogo />
       <ConfirmSession next={next} />
     </main>
