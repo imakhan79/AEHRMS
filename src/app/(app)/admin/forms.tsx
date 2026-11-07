@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { Field, Input, Select } from "@/components/ui";
-import { inviteEmployee, sendPasswordReset, updateSettings, updateWorkflowRule } from "./actions";
+import { inviteEmployee, openFiscalYear, sendPasswordReset, updateSettings, updateWorkflowRule } from "./actions";
 
 type Option = { id: string; label: string };
 
@@ -87,6 +87,19 @@ export function SettingsForm({ values }: { values: Settings }) {
       <div className="sm:col-span-2">
         <SubmitButton>Save settings</SubmitButton>
       </div>
+    </ActionForm>
+  );
+}
+
+export function OpenYearForm({ defaultFy }: { defaultFy: number }) {
+  return (
+    <ActionForm action={openFiscalYear} className="flex items-end gap-2">
+      <Field label="Fiscal year (Jul–Jun, by ending year)" name="fy_year">
+        <Input id="fy_year" name="fiscal_year" type="number" defaultValue={defaultFy} className="w-32" />
+      </Field>
+      <SubmitButton size="sm" variant="secondary">
+        Open year
+      </SubmitButton>
     </ActionForm>
   );
 }

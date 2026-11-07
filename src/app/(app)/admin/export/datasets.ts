@@ -20,7 +20,7 @@ export const DATASETS = [
   { key: "journal_entry_lines", label: "Journal lines", group: "Finance" },
   { key: "bills", label: "Vendor bills", group: "Finance" },
   { key: "invoices", label: "Customer invoices", group: "Finance" },
-  { key: "expense_claims", label: "Expense claims", group: "Finance" },
+  { key: "expense_claims", label: "Expense claims", group: "Payroll" },
   { key: "requisitions", label: "Requisitions", group: "Talent" },
   { key: "candidates", label: "Candidates", group: "Talent" },
   { key: "appraisals", label: "Appraisals", group: "Talent" },

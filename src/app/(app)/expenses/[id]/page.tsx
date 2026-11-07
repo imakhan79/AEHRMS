@@ -102,11 +102,6 @@ export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">)
               <SubmitClaimButton claimId={id} />
             </div>
           )}
-          {c.journal_entry_id && session.canReadPayroll && (
-            <Link href={`/finance/journals/${c.journal_entry_id}`} className="mt-4 inline-block text-sm text-indigo-600 hover:underline">
-              View journal entry →
-            </Link>
-          )}
         </Card>
       </div>
     </>

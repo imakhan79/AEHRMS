@@ -99,20 +99,7 @@ async function cleanup(db) {
       ["/payroll", ["Payroll runs", "New payroll run"]],
       ["/payroll/setup", ["Income tax slabs", "TY2027", "Statutory rates"]],
       ["/payroll/fnf", ["Full &amp; final settlements"]],
-      ["/finance/ledger", ["Trial balance", "Recent journal entries"]],
       ["/payslips", ["My payslips"]],
-      ["/finance", ["Cash at bank", "Accounts payable"]],
-      ["/finance/payables", ["Bills", "New bill"]],
-      ["/finance/receivables", ["Invoices", "New invoice"]],
-      ["/finance/journals", ["New manual journal"]],
-      ["/finance/bank", ["Statement lines", "Import statement"]],
-      ["/finance/reports?r=pl", ["Total revenue", "Net profit"]],
-      ["/finance/reports?r=bs", ["Total assets", "Liabilities + equity"]],
-      ["/finance/reports?r=cf", ["Net change in cash"]],
-      ["/finance/reports?r=ap", ["Not due"]],
-      ["/finance/budgets", ["New budget"]],
-      ["/finance/accounts", ["Chart of accounts", "Add account"]],
-      ["/finance/settings", ["Fiscal periods", "Taxes"]],
       ["/notifications", ["Notifications"]],
       ["/expenses", ["My expense claims", "Request travel"]],
       ["/expenses/approvals", ["Expense claims", "Travel requests"]],
@@ -131,13 +118,11 @@ async function cleanup(db) {
       ["/analytics?view=attendance", ["Attendance rate", "Day status mix"]],
       ["/analytics?view=leave", ["On leave today", "By leave type"]],
       ["/analytics?view=payroll", ["Payroll runs", "Cost by department"]],
-      ["/analytics?view=finance", ["Cash at bank", "Profit &amp; loss by month", "Aging"]],
       ["/analytics?view=recruitment", ["Pipeline by stage", "Candidate sources"]],
       ["/analytics/export?view=workforce", ["Active headcount", "By department"]],
-      ["/analytics/export?view=finance&block=aging", ['"Payables"']],
       ["/admin/users", ["User accounts", "e2e-admin@aehrms.test", "Invite an employee"]],
       ["/admin/workflows", ["Line manager approval", "Notification rules", "HR approval by leave type"]],
-      ["/admin/settings", ["Company information", "July – June"]],
+      ["/admin/settings", ["Company information", "July – June", "Open year"]],
       ["/admin/export", ["Data export &amp; backup", "Download CSV"]],
       ["/admin/export/download?t=departments", ['"code"', "Human Resources"]],
       ["/account", ["Account &amp; password", "Change password"]],
@@ -147,13 +132,6 @@ async function cleanup(db) {
       const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
       if (row) pages.push([path + row.id, []]);
     }
-    for (const [table, path] of [["bills", "/finance/payables/bills/"], ["invoices", "/finance/receivables/invoices/"], ["vendor_payments", "/finance/payables/payments/"], ["journal_entries", "/finance/journals/"], ["budgets", "/finance/budgets/"]]) {
-      const row = (await db.query(`select id from ${table} order by created_at desc limit 1`)).rows[0];
-      if (row) pages.push([path + row.id, ["Back"].filter(() => !path.includes("journals") && !path.includes("budgets"))]);
-    }
-    const vendor = (await db.query(`select id from vendors limit 1`)).rows[0];
-    if (vendor) pages.push([`/finance/payables/pay/${vendor.id}`, ["Settle now"]]);
-    pages.push([`/finance/reports/export?r=bs&from=2026-07-01&to=${new Date().toISOString().slice(0, 10)}`, ['"Balance (PKR)"']]);
     const latestRun = (await db.query(`select id from payroll_runs order by period_month desc limit 1`)).rows[0];
     const anySlip = (await db.query(`select id from payslips order by created_at desc limit 1`)).rows[0];
     if (latestRun) {

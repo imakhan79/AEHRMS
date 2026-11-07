@@ -209,14 +209,7 @@ export default async function PayrollRunPage({ params }: PageProps<"/payroll/run
 
       {run.journal_entry_id && (
         <div className="mt-6">
-          <Card
-            title="General ledger posting"
-            actions={
-              <Link href="/finance/ledger" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
-                Ledger →
-              </Link>
-            }
-          >
+          <Card title="General ledger posting">
             <Table head={["Account", "Cost center", "Description", "Debit", "Credit"]}>
               {((journal.data ?? []) as unknown as JL[]).map((l, i) => (
                 <tr key={i}>

@@ -10,7 +10,6 @@ import {
   FileLock2,
   GraduationCap,
   HandCoins,
-  Landmark,
   LifeBuoy,
   Receipt,
   ScrollText,
@@ -25,9 +24,9 @@ import { BrandLogo } from "@/components/brand";
 import { FadeIn, HoverLift, Reveal, Stagger, StaggerItem } from "@/components/motion";
 
 export const metadata: Metadata = {
-  title: "Zicon HRMS — HR, attendance, payroll & finance in one place",
+  title: "Zicon HRMS — HR, attendance & payroll in one place",
   description:
-    "Integrated HR management by Zicon Technology for iTANZ: employee records, self-service, leave, GPS & biometric attendance, payroll with FBR/EOBI, and native finance.",
+    "Integrated HR management by Zicon Technology for iTANZ: employee records, self-service, leave, GPS & biometric attendance, and payroll with FBR/EOBI.",
 };
 
 const MODULES: { name: string; text: string; live: boolean; icon: LucideIcon }[] = [
@@ -36,7 +35,6 @@ const MODULES: { name: string; text: string; live: boolean; icon: LucideIcon }[]
   { name: "Attendance", text: "Biometric devices, web & mobile check-in with GPS geofence and selfie, offline sync, shifts and overtime.", live: true, icon: Clock },
   { name: "Leave", text: "Policy-checked requests, working-day calculation, holidays per location and manager → HR approvals.", live: true, icon: BadgeCheck },
   { name: "Payroll", text: "Gross-to-net with FBR income tax, EOBI, PESSI, PF and VPS; payslips, bank files and final settlements.", live: true, icon: Wallet },
-  { name: "Finance & Accounting", text: "GL, journals, AP & AR with GST/WHT, bank reconciliation, budgets and financial statements.", live: true, icon: Landmark },
   { name: "Expenses & travel", text: "Travel requests with advances, receipt-backed claims, manager and Finance approval, reimbursement.", live: true, icon: Receipt },
   { name: "Loans & helpdesk", text: "Online loan applications with payroll recovery; HR tickets tracked against SLA.", live: true, icon: LifeBuoy },
   { name: "Recruitment & performance", text: "Requisitions, candidate pipeline, interviews, offers, appraisals, goals and training.", live: true, icon: GraduationCap },
@@ -54,7 +52,7 @@ const TRUST: [LucideIcon, string, string][] = [
   [ShieldCheck, "Role-based access", "Employee, manager/HOD, HR, Finance, Executive, Recruiter, Auditor and Admin — each sees only their scope."],
   [FileLock2, "Restricted personal data", "CNIC, bank and statutory numbers are separated and visible only to HR, Finance, auditors and the employee."],
   [ScrollText, "Complete audit trail", "Every create, change and delete is logged with who and when. The log can't be edited — even by admins."],
-  [HandCoins, "Maker-checker", "Nobody approves their own leave, payroll, payments or journals; posted entries are immutable."],
+  [HandCoins, "Maker-checker", "Nobody approves their own leave, payroll or payments; posted entries are immutable."],
 ];
 
 export default async function HomePage() {
@@ -172,7 +170,7 @@ export default async function HomePage() {
       <section id="modules" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-20 sm:px-6">
         <Reveal className="max-w-2xl">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">Modules</h2>
-          <p className="mt-2 text-gray-600">HR and Finance share one database, so payroll, expenses and loans post straight to the ledger.</p>
+          <p className="mt-2 text-gray-600">Everything shares one database, so attendance, leave, expenses and loans flow straight into payroll.</p>
         </Reveal>
         <Stagger className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map((m) => (

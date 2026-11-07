@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  BadgeDollarSign,
   ChartColumn,
   DatabaseBackup,
   KeyRound,
@@ -18,16 +17,13 @@ import {
   Laptop,
   GraduationCap,
   Target,
-  BookOpen,
   Building2,
-  CalendarCheck,
   CalendarDays,
   ClipboardCheck,
   Clock,
   FileBarChart,
   FileText,
   HandCoins,
-  Landmark,
   LayoutDashboard,
   LifeBuoy,
   Receipt,
@@ -75,14 +71,6 @@ const ICONS: [string, LucideIcon][] = [
   ["/payroll/fnf", ScrollText],
   ["/payroll/setup", Settings],
   ["/payroll", Wallet],
-  ["/finance/payables", BadgeDollarSign],
-  ["/finance/receivables", BadgeDollarSign],
-  ["/finance/journals", BookOpen],
-  ["/finance/bank", Landmark],
-  ["/finance/reports", FileBarChart],
-  ["/finance/budgets", CalendarCheck],
-  ["/finance/settings", Settings],
-  ["/finance", Landmark],
   ["/recruitment", Briefcase],
   ["/assets", Laptop],
   ["/benefits", HeartPulse],
@@ -100,7 +88,7 @@ function iconFor(href: string): LucideIcon {
 function isActive(pathname: string, href: string, all: NavItem[]) {
   const path = href.split(/[?#]/)[0];
   if (!(pathname === path || pathname.startsWith(`${path}/`))) return false;
-  // Prefer the most specific matching item (e.g. /finance/bank over /finance).
+  // Prefer the most specific matching item (e.g. /payroll/setup over /payroll).
   return !all.some((o) => {
     const p = o.href.split(/[?#]/)[0];
     return p !== path && p.startsWith(path) && (pathname === p || pathname.startsWith(`${p}/`));

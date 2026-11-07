@@ -2,7 +2,6 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { hasAnyRole, type Session } from "@/lib/auth";
 import { pkToday } from "@/lib/attendance";
-import { outstanding } from "@/lib/finance";
 import { money, monthLabel } from "@/lib/payroll";
 import type { AppRole } from "@/lib/types";
 
@@ -11,7 +10,7 @@ import type { AppRole } from "@/lib/types";
  * automatically gets their team's numbers and HR / Executive get the whole company.
  */
 
-export type ViewKey = "workforce" | "attendance" | "leave" | "payroll" | "finance" | "recruitment";
+export type ViewKey = "workforce" | "attendance" | "leave" | "payroll" | "recruitment";
 
 export type Cell = string | number | null | { text: string; href: string };
 export interface Block {
@@ -48,7 +47,6 @@ export const VIEWS: { key: ViewKey; label: string; audience: string; can: (s: Se
   { key: "attendance", label: "Attendance", audience: "HR, Executive, HOD", can: (s) => hasAnyRole(s, [...HR_LIKE, "hod", "finance"]) || s.hasReports },
   { key: "leave", label: "Leave", audience: "HR, Executive, HOD", can: (s) => hasAnyRole(s, [...HR_LIKE, "hod", "finance"]) || s.hasReports },
   { key: "payroll", label: "Payroll cost", audience: "Finance, HR, Executive", can: (s) => s.canReadPayroll },
-  { key: "finance", label: "Finance", audience: "Finance, Executive", can: (s) => hasAnyRole(s, ["finance", "system_admin", "executive", "auditor"]) },
   { key: "recruitment", label: "Recruitment", audience: "HR, Recruiters, Executive", can: (s) => hasAnyRole(s, ["hr_admin", "system_admin", "executive", "recruiter", "auditor"]) },
 ];
 
@@ -59,13 +57,12 @@ const DIGEST_ROLES: Record<ViewKey, AppRole[]> = {
   leave: ["hr_admin", "system_admin", "executive", "auditor"],
   recruitment: ["hr_admin", "system_admin", "executive", "recruiter"],
   payroll: ["hr_admin", "system_admin", "executive", "auditor", "finance"],
-  finance: ["system_admin", "executive", "auditor", "finance"],
 };
 export const canReceiveDigest = (s: Session, view: ViewKey) => hasAnyRole(s, DIGEST_ROLES[view]);
 
 /** Default landing view per role (ANL-01). */
 export function defaultView(s: Session): ViewKey | null {
-  if (hasAnyRole(s, ["finance"]) && !hasAnyRole(s, ["hr_admin", "system_admin"])) return "finance";
+  if (hasAnyRole(s, ["finance"]) && !hasAnyRole(s, ["hr_admin", "system_admin"])) return "payroll";
   if (hasAnyRole(s, ["recruiter"]) && !hasAnyRole(s, [...HR_LIKE, "hod"])) return "recruitment";
   return VIEWS.find((v) => v.can(s))?.key ?? null;
 }
@@ -470,83 +467,6 @@ async function payroll(): Promise<ViewData> {
   };
 }
 
-// ---------------------------------------------------------------- Finance
-async function finance(): Promise<ViewData> {
-  const supabase = await createClient();
-  const t = pkToday();
-  const m0 = `${t.slice(0, 7)}-01`;
-  const months = Array.from({ length: 6 }, (_, i) => addMonths(m0, i - 5));
-  const [tb, banks, bills, invoices, ...pls] = await Promise.all([
-    supabase.rpc("trial_balance", { p_as_of: t }),
-    supabase.from("bank_accounts").select("id, name, bank_name, gl_account_id").eq("is_active", true).order("name"),
-    supabase.from("bills").select("total, amount_paid, due_date").eq("status", "posted"),
-    supabase.from("invoices").select("total, amount_received, due_date").eq("status", "posted"),
-    ...months.map((m) => supabase.rpc("fin_profit_and_loss", { p_from: m, p_to: m === m0 ? t : monthEnd(m), p_cost_center: null })),
-  ]);
-  const balance = new Map(((tb.data ?? []) as { account_id: string; balance: number }[]).map((r) => [r.account_id, n(r.balance)]));
-  const cashRows = (banks.data ?? []).map((b) => [{ text: b.name, href: "/finance/bank" }, b.bank_name, balance.get(b.gl_account_id) ?? 0] as Cell[]);
-  const cash = (banks.data ?? []).reduce((acc, b) => acc + (balance.get(b.gl_account_id) ?? 0), 0);
-
-  const aging = (docs: { total: number; paid: number; due_date: string }[]) => {
-    const b = [0, 0, 0, 0, 0];
-    for (const d of docs) {
-      const due = outstanding(d.total, d.paid);
-      if (due <= 0) continue;
-      const late = Math.floor((Date.parse(t) - Date.parse(d.due_date)) / 86400000);
-      b[late <= 0 ? 0 : late <= 30 ? 1 : late <= 60 ? 2 : late <= 90 ? 3 : 4] += due;
-    }
-    return b;
-  };
-  const ap = aging((bills.data ?? []).map((x) => ({ total: x.total, paid: x.amount_paid, due_date: x.due_date })));
-  const ar = aging((invoices.data ?? []).map((x) => ({ total: x.total, paid: x.amount_received, due_date: x.due_date })));
-  const tot = (b: number[]) => b.reduce((a, c) => a + c, 0);
-
-  const pl = months.map((m, i) => {
-    const rows = (pls[i].data ?? []) as { account_type: string; amount: number }[];
-    const revenue = rows.filter((r) => r.account_type === "revenue").reduce((a, r) => a + n(r.amount), 0);
-    const expense = rows.filter((r) => r.account_type === "expense").reduce((a, r) => a + n(r.amount), 0);
-    return { m, revenue, expense, net: revenue - expense };
-  });
-  const net6 = pl.reduce((a, r) => a + r.net, 0);
-
-  return {
-    scope: `Posted entries as of ${t}`,
-    kpis: [
-      { label: "Cash at bank", value: `PKR ${money(cash)}`, hint: `${(banks.data ?? []).length} bank accounts`, href: "/finance/bank" },
-      { label: "Payables outstanding", value: `PKR ${money(tot(ap))}`, hint: `${money(tot(ap) - ap[0])} overdue`, href: "/finance/reports?r=ap" },
-      { label: "Receivables outstanding", value: `PKR ${money(tot(ar))}`, hint: `${money(tot(ar) - ar[0])} overdue`, href: "/finance/reports?r=ar" },
-      { label: "Net income, 6 months", value: `PKR ${money(net6)}`, hint: `${monthLabel(months[0])} – today`, href: `/finance/reports?r=pl&from=${months[0]}&to=${t}` },
-    ],
-    trend: {
-      title: "Expenses by month",
-      unit: "PKR",
-      points: pl.map((r) => ({ label: shortMonth(r.m), value: r.expense, display: `PKR ${money(r.expense)} expenses in ${monthLabel(r.m)}`, href: `/finance/reports?r=pl&from=${r.m}&to=${r.m === m0 ? t : monthEnd(r.m)}` })),
-    },
-    blocks: [
-      {
-        key: "pl",
-        title: "Profit & loss by month",
-        head: ["Month", "Revenue", "Expenses", "Net"],
-        rows: [
-          ...pl.map((r) => [{ text: monthLabel(r.m), href: `/finance/reports?r=pl&from=${r.m}&to=${r.m === m0 ? t : monthEnd(r.m)}` }, r.revenue, r.expense, r.net] as Cell[]),
-          ["Total", pl.reduce((a, r) => a + r.revenue, 0), pl.reduce((a, r) => a + r.expense, 0), net6],
-        ],
-        totalRow: true,
-      },
-      {
-        key: "aging",
-        title: "Aging",
-        head: ["", "Not due", "1–30", "31–60", "61–90", "90+", "Total"],
-        rows: [
-          [{ text: "Payables", href: "/finance/reports?r=ap" }, ...ap, tot(ap)],
-          [{ text: "Receivables", href: "/finance/reports?r=ar" }, ...ar, tot(ar)],
-        ],
-      },
-      { key: "cash", title: "Cash by bank account", head: ["Account", "Bank", "Balance"], rows: [...cashRows, ["Total", "", cash]], totalRow: true },
-    ],
-  };
-}
-
 // ---------------------------------------------------------------- Recruitment
 async function recruitment(): Promise<ViewData> {
   const supabase = await createClient();
@@ -630,8 +550,6 @@ export async function loadView(key: ViewKey, s: Session): Promise<ViewData> {
       return leave(s);
     case "payroll":
       return payroll();
-    case "finance":
-      return finance();
     case "recruitment":
       return recruitment();
   }

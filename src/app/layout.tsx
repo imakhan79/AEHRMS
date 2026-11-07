@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: { default: "Zicon HRMS", template: "%s · Zicon HRMS" },
-  description: "Zicon HRMS for iTANZ — HR, payroll and finance",
+  description: "Zicon HRMS for iTANZ — HR and payroll",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

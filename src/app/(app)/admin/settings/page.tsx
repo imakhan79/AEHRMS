@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, DescList, PageHeader } from "@/components/ui";
 import { fmtDateTime } from "@/lib/format";
-import { SettingsForm, type Settings } from "../forms";
+import { OpenYearForm, SettingsForm, type Settings } from "../forms";
 
 export const metadata: Metadata = { title: "System settings" };
 
@@ -21,6 +20,7 @@ export default async function SettingsPage() {
   const current = (periods ?? []).filter((p) => p.period_start <= today).at(-1);
   const years = [...new Set((periods ?? []).map((p) => p.fiscal_year as number))];
   const closed = (periods ?? []).filter((p) => p.status === "closed").length;
+  const nextFy = (years.at(-1) ?? new Date().getFullYear()) + 1;
 
   return (
     <>
@@ -41,12 +41,11 @@ export default async function SettingsPage() {
             ]}
           />
           <p className="mt-4 text-xs text-gray-500">
-            The tax slabs and statutory rates use this calendar, so it can&apos;t be changed. Open the next year and close months under{" "}
-            <Link href="/finance/settings" className="font-medium text-indigo-700 hover:underline">
-              Periods &amp; taxes
-            </Link>
-            .
+            The tax slabs and statutory rates use this calendar, so it can&apos;t be changed. Open the next year before July so payroll can post.
           </p>
+          <div className="mt-4">
+            <OpenYearForm defaultFy={nextFy} />
+          </div>
         </Card>
       </div>
     </>

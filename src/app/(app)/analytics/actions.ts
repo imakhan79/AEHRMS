@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyError } from "@/lib/format";
 import type { ActionState } from "@/lib/types";
 
-const REPORTS = ["workforce", "attendance", "leave", "payroll", "finance", "recruitment"] as const;
+const REPORTS = ["workforce", "attendance", "leave", "payroll", "recruitment"] as const;
 
 export async function saveSubscription(_: ActionState, formData: FormData): Promise<ActionState> {
   await requireSession();

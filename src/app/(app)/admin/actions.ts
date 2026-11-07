@@ -130,6 +130,19 @@ export async function updateSettings(_: ActionState, formData: FormData): Promis
   return { ok: true, message: "Settings saved." };
 }
 
+/** Payroll and expense postings need the month's fiscal period to exist. */
+export async function openFiscalYear(_: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireSession();
+  if (!session.isAdmin) return { error: "Only a System Admin can open a fiscal year." };
+  const fy = Number(formData.get("fiscal_year"));
+  if (!Number.isInteger(fy) || fy < 2020 || fy > 2100) return { error: "Enter a fiscal year like 2028." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fin_open_fiscal_year", { p_fy: fy });
+  if (error) return { error: friendlyError(error) };
+  revalidatePath("/admin/settings");
+  return { ok: true, message: `Opened ${data} period(s) for FY${fy}.` };
+}
+
 // ---------------- Workflows & notifications (ADM-03, ADM-04) ----------------
 
 export async function updateWorkflowRule(_: ActionState, formData: FormData): Promise<ActionState> {

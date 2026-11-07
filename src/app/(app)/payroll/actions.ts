@@ -140,7 +140,6 @@ export async function addLoan(employeeId: string, _: ActionState, formData: Form
   );
   if (error) return { error: friendlyError(error) };
   refresh();
-  revalidatePath("/finance/ledger");
   return { ok: true, message: "Recorded and disbursement posted to the ledger. Installments deduct automatically." };
 }
 
@@ -286,6 +285,5 @@ export async function approveSettlement(id: string, _: ActionState): Promise<Act
   const { error } = await supabase.rpc("fnf_approve", { p_id: id });
   if (error) return { error: friendlyError(error) };
   refresh();
-  revalidatePath("/finance/ledger");
   return { ok: true, message: "Settlement approved and posted to the ledger." };
 }
