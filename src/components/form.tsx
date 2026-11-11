@@ -54,12 +54,12 @@ export function ActionForm({
     <form ref={ref} action={formAction} className={className}>
       {children}
       {state?.error && (
-        <p role="alert" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="col-span-full mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
         </p>
       )}
       {state?.ok && state.message && (
-        <p role="status" className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p role="status" className="col-span-full mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
           {state.message}
         </p>
       )}
