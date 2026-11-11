@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Badge, Card, Notice, PageHeader, Stat, Table, Td, cn } from "@/components/ui";
+import { Badge, Card, Notice, PageHeader, Stat, Table, Td, buttonClass, cn } from "@/components/ui";
 import { fmtDateTime, titleCase } from "@/lib/format";
 import { TicketForm } from "../workflow-forms";
 
@@ -35,7 +35,17 @@ export default async function HelpdeskPage({ searchParams }: PageProps<"/helpdes
 
   return (
     <>
-      <PageHeader title="Helpdesk" description="Raise HR, payroll and IT queries and track them against SLA." />
+      <PageHeader
+        title="Helpdesk"
+        description="Raise HR, payroll and IT queries and track them against SLA."
+        actions={
+          session.isHR && (
+            <Link href="/helpdesk/setup" className={buttonClass("secondary")}>
+              SLA setup
+            </Link>
+          )
+        }
+      />
       <div className="mb-4 flex gap-2">
         {tabs.map(([k, label]) => (
           <Link key={k} href={`/helpdesk?view=${k}`} className={cn("rounded-lg px-3 py-1.5 text-sm ring-1", view === k ? "bg-indigo-600 text-white ring-indigo-600" : "bg-white text-gray-700 ring-gray-300")}>

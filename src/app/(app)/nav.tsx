@@ -58,6 +58,7 @@ const ICONS: [string, LucideIcon][] = [
   ["/expenses/approvals", ClipboardCheck],
   ["/expenses", Receipt],
   ["/loans", HandCoins],
+  ["/helpdesk/setup", Settings],
   ["/helpdesk", LifeBuoy],
   ["/employees/documents", FileCheck],
   ["/employees", Users],

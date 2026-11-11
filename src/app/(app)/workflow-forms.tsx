@@ -13,6 +13,7 @@ import {
   raiseTicket,
   renameClaim,
   requestTravel,
+  saveTicketCategory,
   submitClaim,
   updateExpenseItem,
   updateTicket,
@@ -292,6 +293,60 @@ export function RequesterTicketForm({ ticketId }: { ticketId: string }) {
       <SubmitButton size="sm" variant="secondary" name="status" value="open">
         Not fixed — reopen
       </SubmitButton>
+    </ActionForm>
+  );
+}
+
+export type TicketCategoryValues = {
+  id: string;
+  name: string;
+  sla_response_hours: number;
+  sla_resolution_hours: number;
+  default_assignee_id: string | null;
+  is_active: boolean;
+};
+
+/** One row of the SLA setup: edits a category, or adds one when `category` is omitted. */
+export function TicketCategoryForm({ category, employees }: { category?: TicketCategoryValues; employees: Option[] }) {
+  const c = category;
+  return (
+    <ActionForm
+      action={saveTicketCategory.bind(null, c?.id ?? null)}
+      resetOnSuccess={!c}
+      className="grid gap-3 sm:grid-cols-12 sm:items-end"
+    >
+      <div className="sm:col-span-3">
+        <Field label="Category" name={`name_${c?.id ?? "new"}`}>
+          <Input id={`name_${c?.id ?? "new"}`} name="name" required maxLength={80} defaultValue={c?.name} />
+        </Field>
+      </div>
+      <div className="sm:col-span-2">
+        <Field label="Response (hours)" name={`resp_${c?.id ?? "new"}`}>
+          <Input id={`resp_${c?.id ?? "new"}`} name="sla_response_hours" type="number" min={1} step={1} required defaultValue={c?.sla_response_hours ?? 8} />
+        </Field>
+      </div>
+      <div className="sm:col-span-2">
+        <Field label="Resolution (hours)" name={`res_${c?.id ?? "new"}`}>
+          <Input id={`res_${c?.id ?? "new"}`} name="sla_resolution_hours" type="number" min={1} step={1} required defaultValue={c?.sla_resolution_hours ?? 48} />
+        </Field>
+      </div>
+      <div className="sm:col-span-3">
+        <Field label="Default assignee" name={`asg_${c?.id ?? "new"}`}>
+          <Select id={`asg_${c?.id ?? "new"}`} name="default_assignee_id" defaultValue={c?.default_assignee_id ?? ""}>
+            <Opts items={employees} placeholder="— HR team —" />
+          </Select>
+        </Field>
+      </div>
+      <div className="flex items-center gap-3 sm:col-span-2">
+        {c && (
+          <label className="flex items-center gap-1.5 text-xs text-gray-600">
+            <input type="checkbox" name="is_active" defaultChecked={c.is_active} className="rounded border-gray-300" /> Active
+          </label>
+        )}
+        <SubmitButton size="sm" variant={c ? "secondary" : "primary"}>
+          {c ? "Save" : "Add"}
+        </SubmitButton>
+      </div>
     </ActionForm>
   );
 }

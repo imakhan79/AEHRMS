@@ -266,3 +266,29 @@ export async function updateTicket(ticketId: string, _: ActionState, formData: F
   revalidatePath("/helpdesk");
   return { ok: true, message: "Ticket updated." };
 }
+
+// ---------- Helpdesk SLA setup (HD-04) ----------
+
+/** Creates (id null) or updates a ticket category and its SLA targets. HR only (RLS). */
+export async function saveTicketCategory(id: string | null, _: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireSession();
+  if (!session.isHR) return { error: "Only HR can change helpdesk SLAs." };
+  const p = z
+    .object({
+      name: z.string().trim().min(2, "Give the category a name.").max(80),
+      sla_response_hours: z.coerce.number().int("Use whole hours.").min(1, "Response time must be at least 1 hour.").max(2000),
+      sla_resolution_hours: z.coerce.number().int("Use whole hours.").min(1, "Resolution time must be at least 1 hour.").max(5000),
+      default_assignee_id: z.union([z.uuid(), z.literal("")]),
+    })
+    .refine((v) => v.sla_resolution_hours >= v.sla_response_hours, { message: "Resolution time can't be shorter than response time." })
+    .safeParse(Object.fromEntries(formData));
+  if (!p.success) return { error: p.error.issues[0].message };
+  const row = { ...p.data, default_assignee_id: p.data.default_assignee_id || null, is_active: id ? formData.get("is_active") === "on" : true };
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("ticket_categories").update(row).eq("id", id)
+    : await supabase.from("ticket_categories").insert(row);
+  if (error) return fail(error);
+  revalidatePath("/helpdesk", "layout");
+  return { ok: true, message: id ? "SLA saved. New tickets use it; open tickets keep their due times." : "Category added." };
+}

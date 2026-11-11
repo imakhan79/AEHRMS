@@ -63,6 +63,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     items.push({ href: "/attendance/reports", label: "Attendance reports", section: "Team" });
   }
   if (session.isHR) items.push({ href: "/attendance/setup", label: "Attendance setup", section: "HR" });
+  if (session.isHR) items.push({ href: "/helpdesk/setup", label: "Helpdesk SLA", section: "HR" });
   if (session.canReadPayroll) {
     items.push(
       { href: "/payroll", label: "Payroll runs", section: "Payroll" },
