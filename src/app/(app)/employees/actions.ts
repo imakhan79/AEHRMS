@@ -278,22 +278,47 @@ export async function uploadDocument(employeeId: string, _: ActionState, formDat
     .upload(path, file, { contentType: file.type, upsert: false });
   if (upErr) return { error: upErr.message.includes("row-level security") ? "You can't upload to this record." : upErr.message };
 
-  const { error } = await supabase.from("employee_documents").insert(
-    emptyToNull({
-      employee_id: employeeId,
-      ...parsed.data,
-      file_path: path,
-      file_name: file.name,
-      mime_type: file.type,
-      size_bytes: file.size,
-    }),
-  );
+  const { data: doc, error } = await supabase
+    .from("employee_documents")
+    .insert(
+      emptyToNull({
+        employee_id: employeeId,
+        ...parsed.data,
+        file_path: path,
+        file_name: file.name,
+        mime_type: file.type,
+        size_bytes: file.size,
+      }),
+    )
+    .select("status")
+    .single();
   if (error) {
     await supabase.storage.from("employee-documents").remove([path]);
     return { error: friendlyError(error) };
   }
-  changed(`/employees/${employeeId}`, "/profile");
-  return { ok: true, message: "Document uploaded." };
+  changed(`/employees/${employeeId}`, "/profile", "/employees/documents", "/dashboard");
+  return { ok: true, message: doc.status === "pending" ? "Document uploaded — HR will verify it." : "Document uploaded." };
+}
+
+/** HR verifies or rejects a document an employee uploaded (the DB trigger enforces the rules). */
+export async function reviewDocument(id: string, _: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireSession();
+  if (!session.isHR) return { error: "Only HR can review documents." };
+  const decision = formData.get("decision");
+  if (decision !== "verified" && decision !== "rejected") return { error: "Choose verify or reject." };
+  const note = String(formData.get("note") ?? "").trim().slice(0, 300);
+  if (decision === "rejected" && !note) return { error: "Give a reason when rejecting." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("employee_documents")
+    .update({ status: decision, review_note: note || null })
+    .eq("id", id)
+    .select("status, employee_id")
+    .maybeSingle();
+  if (error) return { error: friendlyError(error) };
+  if (!data) return { error: "You can't review this document." };
+  changed("/employees/documents", `/employees/${data.employee_id}`, "/profile", "/dashboard");
+  return { ok: true, message: `Document ${data.status}.` };
 }
 
 export async function deleteDocument(id: string) {

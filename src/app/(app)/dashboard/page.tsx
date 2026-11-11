@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const seesOrg = hasAnyRole(session, ["hr_admin", "system_admin", "executive", "finance", "auditor"]);
 
   const today = pkToday();
-  const [balances, myRequests, pendingApprovals, headcount, todayPunches, attQueue, presentToday] = await Promise.all([
+  const [balances, myRequests, pendingApprovals, headcount, todayPunches, attQueue, presentToday, docsPending] = await Promise.all([
     emp
       ? supabase.from("leave_balance_summary").select("*").eq("employee_id", emp.id).eq("year", year).order("leave_type")
       : Promise.resolve({ data: [] as LeaveBalance[] }),
@@ -41,6 +41,11 @@ export default async function DashboardPage() {
     seesOrg
       ? supabase.from("attendance_punches").select("employee_id").eq("work_date", today).eq("punch_type", "in").neq("verification", "rejected")
       : Promise.resolve({ data: null }),
+    session.isHR
+      ? (emp
+          ? supabase.from("employee_documents").select("id", { count: "exact", head: true }).eq("status", "pending").neq("employee_id", emp.id)
+          : supabase.from("employee_documents").select("id", { count: "exact", head: true }).eq("status", "pending"))
+      : Promise.resolve({ count: 0 }),
   ]);
   const punches = (todayPunches.data ?? []) as { punch_type: "in" | "out"; punch_time: string }[];
   const firstIn = punches.find((p) => p.punch_type === "in");
@@ -86,6 +91,11 @@ export default async function DashboardPage() {
         {attPending > 0 && (
           <Link href="/attendance/approvals" className="block">
             <Stat label="Attendance to approve" value={attPending} hint="Field punches & corrections →" />
+          </Link>
+        )}
+        {(docsPending.count ?? 0) > 0 && (
+          <Link href="/employees/documents" className="block">
+            <Stat label="Documents to verify" value={docsPending.count ?? 0} hint="Employee uploads →" />
           </Link>
         )}
         {seesOrg && <Stat label="Checked in today" value={presentCount} hint={`of ${active.length} active`} />}

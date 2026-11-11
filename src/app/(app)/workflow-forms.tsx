@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ActionForm, SubmitButton } from "@/components/form";
 import { Field, Input, Select, Textarea } from "@/components/ui";
 import {
@@ -10,8 +11,10 @@ import {
   decide,
   payClaim,
   raiseTicket,
+  renameClaim,
   requestTravel,
   submitClaim,
+  updateExpenseItem,
   updateTicket,
 } from "./workflow-actions";
 
@@ -71,31 +74,58 @@ export function NewClaimForm({ trips }: { trips: Option[] }) {
   );
 }
 
-export function ExpenseItemForm({ claimId, categories }: { claimId: string; categories: Option[] }) {
+export type ExpenseItemValues = { id: string; category_id: string; expense_date: string; description: string; amount: number; has_receipt: boolean };
+
+/** Adds an expense to a draft claim, or edits one when `item` is given. */
+export function ExpenseItemForm({ claimId, categories, item, cancelHref }: { claimId: string; categories: Option[]; item?: ExpenseItemValues; cancelHref?: string }) {
+  const action = item ? updateExpenseItem.bind(null, claimId, item.id) : addExpenseItem.bind(null, claimId);
   return (
-    <ActionForm action={addExpenseItem.bind(null, claimId)} resetOnSuccess className="grid gap-3 sm:grid-cols-5 sm:items-end">
+    <ActionForm key={item?.id ?? "new"} action={action} resetOnSuccess={!item} className="grid gap-3 sm:grid-cols-5 sm:items-end">
       <Field label="Category" name="ei_cat">
-        <Select id="ei_cat" name="category_id" required defaultValue="">
+        <Select id="ei_cat" name="category_id" required defaultValue={item?.category_id ?? ""}>
           <Opts items={categories} placeholder="Select…" />
         </Select>
       </Field>
       <Field label="Date" name="ei_date">
-        <Input id="ei_date" name="expense_date" type="date" required />
+        <Input id="ei_date" name="expense_date" type="date" required defaultValue={item?.expense_date} />
       </Field>
       <Field label="Description" name="ei_desc">
-        <Input id="ei_desc" name="description" required maxLength={200} />
+        <Input id="ei_desc" name="description" required maxLength={200} defaultValue={item?.description} />
       </Field>
       <Field label="Amount (PKR)" name="ei_amt">
-        <Input id="ei_amt" name="amount" type="number" min={1} step="0.01" required />
+        <Input id="ei_amt" name="amount" type="number" min={1} step="0.01" required defaultValue={item?.amount} />
       </Field>
-      <Field label="Receipt" name="ei_rcpt">
+      <Field label={item?.has_receipt ? "Replace receipt (optional)" : "Receipt (optional)"} name="ei_rcpt">
         <Input id="ei_rcpt" name="receipt" type="file" accept="application/pdf,image/*" className="py-1.5" />
       </Field>
-      <div className="sm:col-span-5">
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-5">
         <SubmitButton size="sm" variant="secondary">
-          Add expense
+          {item ? "Save changes" : "Add expense"}
         </SubmitButton>
+        {item?.has_receipt && (
+          <label className="flex items-center gap-1.5 text-xs text-gray-600">
+            <input type="checkbox" name="remove_receipt" className="rounded border-gray-300" /> Remove current receipt
+          </label>
+        )}
+        {cancelHref && (
+          <Link href={cancelHref} className="text-xs text-gray-500 hover:text-gray-700">
+            Cancel
+          </Link>
+        )}
       </div>
+    </ActionForm>
+  );
+}
+
+export function RenameClaimForm({ claimId, title }: { claimId: string; title: string }) {
+  return (
+    <ActionForm action={renameClaim.bind(null, claimId)} className="flex flex-wrap items-end gap-2">
+      <Field label="Claim title" name="claim_title">
+        <Input id="claim_title" name="title" required minLength={3} maxLength={200} defaultValue={title} />
+      </Field>
+      <SubmitButton size="sm" variant="secondary">
+        Rename
+      </SubmitButton>
     </ActionForm>
   );
 }

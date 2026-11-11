@@ -73,6 +73,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   if (hasAnyRole(session, DIRECTORY_ROLES) || session.employee) {
     items.push({ href: "/employees", label: "Employees", section: "HR" });
   }
+  if (session.isHR) items.push({ href: "/employees/documents", label: "Documents to verify", section: "HR" });
   items.push({ href: "/organization", label: "Organization", section: "HR" });
   if (session.isAdmin) {
     items.push(

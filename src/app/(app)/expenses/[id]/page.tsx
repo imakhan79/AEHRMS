@@ -7,21 +7,22 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge, Card, DescList, PageHeader, Stat, Table, Td, buttonClass } from "@/components/ui";
 import { fmtDate, fmtDateTime, titleCase } from "@/lib/format";
 import { money } from "@/lib/payroll";
-import { ExpenseItemForm, SubmitClaimButton } from "../../workflow-forms";
+import { ExpenseItemForm, RenameClaimForm, SubmitClaimButton } from "../../workflow-forms";
 import { removeExpenseItem } from "../../workflow-actions";
 
 export const metadata: Metadata = { title: "Expense claim" };
 
-export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">) {
+export default async function ClaimPage({ params, searchParams }: PageProps<"/expenses/[id]">) {
   const { id } = await params;
+  const { edit } = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
   const session = await requireSession();
   const supabase = await createClient();
   const { data: c } = await supabase.from("expense_claims").select("*, employees!expense_claims_employee_id_fkey(full_name, employee_code)").eq("id", id).maybeSingle();
   if (!c) notFound();
   const [{ data: items }, { data: cats }] = await Promise.all([
-    supabase.from("expense_items").select("*, expense_categories(name, requires_receipt)").eq("claim_id", id).order("expense_date"),
-    supabase.from("expense_categories").select("id, name, per_item_limit, requires_receipt").eq("is_active", true).order("name"),
+    supabase.from("expense_items").select("*, expense_categories(name)").eq("claim_id", id).order("expense_date"),
+    supabase.from("expense_categories").select("id, name, per_item_limit").eq("is_active", true).order("name"),
   ]);
   const paths = (items ?? []).map((i) => i.receipt_path).filter(Boolean) as string[];
   const { data: signed } = paths.length ? await supabase.storage.from("expense-receipts").createSignedUrls(paths, 600) : { data: [] };
@@ -29,6 +30,7 @@ export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">)
   for (const s of signed ?? []) if (s.path && s.signedUrl) url.set(s.path, s.signedUrl);
   const mine = c.employee_id === session.employee?.id;
   const draft = c.status === "draft" && mine;
+  const editing = draft ? (items ?? []).find((i) => i.id === edit) : undefined;
 
   return (
     <>
@@ -61,17 +63,20 @@ export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">)
                     <a href={url.get(i.receipt_path)} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline">
                       View
                     </a>
-                  ) : i.expense_categories?.requires_receipt ? (
-                    <Badge tone="red">Missing</Badge>
                   ) : (
-                    <span className="text-xs text-gray-400">Not required</span>
+                    <span className="text-xs text-gray-400">None</span>
                   )}
                 </Td>
                 <Td>
                   {draft && (
-                    <form action={removeExpenseItem.bind(null, id, i.id)}>
-                      <button className="text-xs text-gray-400 hover:text-red-600">Remove</button>
-                    </form>
+                    <div className="flex items-center gap-3">
+                      <Link href={`/expenses/${id}?edit=${i.id}`} className="text-xs text-indigo-600 hover:underline">
+                        Edit
+                      </Link>
+                      <form action={removeExpenseItem.bind(null, id, i.id)}>
+                        <button className="text-xs text-gray-400 hover:text-red-600">Remove</button>
+                      </form>
+                    </div>
                   )}
                 </Td>
               </tr>
@@ -79,9 +84,21 @@ export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">)
           </Table>
           {draft && (
             <div className="mt-8 border-t border-gray-100 pt-4">
+              {editing && <h3 className="mb-3 text-sm font-semibold text-gray-900">Edit expense</h3>}
               <ExpenseItemForm
                 claimId={id}
-                categories={(cats ?? []).map((k) => ({ id: k.id, label: `${k.name}${k.per_item_limit ? ` (max ${money(k.per_item_limit)})` : ""}${k.requires_receipt ? "" : " · no receipt"}` }))}
+                categories={(cats ?? []).map((k) => ({ id: k.id, label: `${k.name}${k.per_item_limit ? ` (max ${money(k.per_item_limit)})` : ""}` }))}
+                item={
+                  editing && {
+                    id: editing.id,
+                    category_id: editing.category_id,
+                    expense_date: editing.expense_date,
+                    description: editing.description,
+                    amount: Number(editing.amount),
+                    has_receipt: !!editing.receipt_path,
+                  }
+                }
+                cancelHref={editing ? `/expenses/${id}` : undefined}
               />
             </div>
           )}
@@ -97,6 +114,11 @@ export default async function ClaimPage({ params }: PageProps<"/expenses/[id]">)
               ["Comment", c.decision_comment ?? "—"],
             ]}
           />
+          {draft && (
+            <div className="mt-6 border-t border-gray-100 pt-4">
+              <RenameClaimForm claimId={id} title={c.title} />
+            </div>
+          )}
           {draft && (c.total ?? 0) > 0 && (
             <div className="mt-6 border-t border-gray-100 pt-4">
               <SubmitClaimButton claimId={id} />

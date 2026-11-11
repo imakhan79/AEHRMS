@@ -8,6 +8,7 @@ import {
   addEmergencyContact,
   addHistory,
   allocateLeave,
+  reviewDocument,
   savePrivate,
   uploadDocument,
 } from "./actions";
@@ -212,6 +213,20 @@ export function UploadForm({ employeeId }: { employeeId: string }) {
         <Input id="file" name="file" type="file" required accept="application/pdf,image/jpeg,image/png,image/webp" className="py-1.5" />
       </Field>
       <SubmitButton size="sm">Upload</SubmitButton>
+    </ActionForm>
+  );
+}
+
+export function ReviewDocument({ id }: { id: string }) {
+  return (
+    <ActionForm action={reviewDocument.bind(null, id)} className="flex flex-wrap items-center gap-2">
+      <Input name="note" placeholder="Note (required to reject)" className="w-48 py-1.5 text-xs" maxLength={300} />
+      <SubmitButton size="sm" variant="success" name="decision" value="verified">
+        Verify
+      </SubmitButton>
+      <SubmitButton size="sm" variant="danger" name="decision" value="rejected">
+        Reject
+      </SubmitButton>
     </ActionForm>
   );
 }

@@ -59,30 +59,51 @@ export async function createClaim(_: ActionState, formData: FormData): Promise<A
   redirect(`/expenses/${data.id}`);
 }
 
+export async function renameClaim(claimId: string, _: ActionState, formData: FormData): Promise<ActionState> {
+  await requireSession();
+  const title = String(formData.get("title") ?? "").trim();
+  if (title.length < 3) return { error: "Give the claim a title." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("expense_claims").update({ title }).eq("id", claimId).select("id").maybeSingle();
+  if (error) return fail(error);
+  if (!data) return { error: "Only your own draft claims can be edited." };
+  revalidatePath("/expenses", "layout");
+  return { ok: true, message: "Claim renamed." };
+}
+
 const RECEIPT_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+const expenseItemSchema = z.object({
+  category_id: z.uuid("Choose a category."),
+  expense_date: z.iso.date("Choose the date."),
+  description: z.string().trim().min(2).max(200),
+  amount: z.coerce.number().positive("Enter the amount."),
+});
+
+/** Uploads the optional receipt; returns its path (null if none chosen) or an error. */
+async function uploadReceipt(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  employeeId: string,
+  claimId: string,
+  file: FormDataEntryValue | null,
+): Promise<{ path: string | null } | { error: string }> {
+  if (!(file instanceof File) || file.size === 0) return { path: null };
+  if (file.size > 4 * 1024 * 1024) return { error: "Receipts must be 4 MB or smaller." };
+  if (!RECEIPT_TYPES.includes(file.type)) return { error: "Upload a PDF or image." };
+  const path = `${employeeId}/${claimId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]+/g, "_").slice(-60)}`;
+  const { error } = await supabase.storage.from("expense-receipts").upload(path, file, { contentType: file.type });
+  return error ? { error: error.message } : { path };
+}
 
 export async function addExpenseItem(claimId: string, _: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireSession();
   if (!session.employee) return { error: "Not linked to an employee record." };
-  const p = z
-    .object({
-      category_id: z.uuid("Choose a category."),
-      expense_date: z.iso.date("Choose the date."),
-      description: z.string().trim().min(2).max(200),
-      amount: z.coerce.number().positive("Enter the amount."),
-    })
-    .safeParse(Object.fromEntries(formData));
+  const p = expenseItemSchema.safeParse(Object.fromEntries(formData));
   if (!p.success) return { error: p.error.issues[0].message };
-  const file = formData.get("receipt");
   const supabase = await createClient();
-  let receipt_path: string | null = null;
-  if (file instanceof File && file.size > 0) {
-    if (file.size > 4 * 1024 * 1024) return { error: "Receipts must be 4 MB or smaller." };
-    if (!RECEIPT_TYPES.includes(file.type)) return { error: "Upload a PDF or image." };
-    receipt_path = `${session.employee.id}/${claimId}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]+/g, "_").slice(-60)}`;
-    const { error: upErr } = await supabase.storage.from("expense-receipts").upload(receipt_path, file, { contentType: file.type });
-    if (upErr) return { error: upErr.message };
-  }
+  const up = await uploadReceipt(supabase, session.employee.id, claimId, formData.get("receipt"));
+  if ("error" in up) return up;
+  const receipt_path = up.path;
   const { error } = await supabase.from("expense_items").insert({ claim_id: claimId, ...p.data, receipt_path });
   if (error) {
     if (receipt_path) await supabase.storage.from("expense-receipts").remove([receipt_path]);
@@ -90,6 +111,33 @@ export async function addExpenseItem(claimId: string, _: ActionState, formData: 
   }
   revalidatePath(`/expenses/${claimId}`);
   return { ok: true, message: "Expense added." };
+}
+
+export async function updateExpenseItem(claimId: string, itemId: string, _: ActionState, formData: FormData): Promise<ActionState> {
+  const session = await requireSession();
+  if (!session.employee) return { error: "Not linked to an employee record." };
+  const p = expenseItemSchema.safeParse(Object.fromEntries(formData));
+  if (!p.success) return { error: p.error.issues[0].message };
+  const supabase = await createClient();
+  const { data: old } = await supabase.from("expense_items").select("receipt_path").eq("id", itemId).eq("claim_id", claimId).maybeSingle();
+  if (!old) return { error: "Expense not found." };
+  const up = await uploadReceipt(supabase, session.employee.id, claimId, formData.get("receipt"));
+  if ("error" in up) return up;
+  const removeReceipt = formData.get("remove_receipt") === "on";
+  const receipt_path = up.path ?? (removeReceipt ? null : old.receipt_path);
+  const { data, error } = await supabase
+    .from("expense_items")
+    .update({ ...p.data, receipt_path })
+    .eq("id", itemId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    if (up.path) await supabase.storage.from("expense-receipts").remove([up.path]);
+    return error ? fail(error) : { error: "Only expenses on your own draft claims can be edited." };
+  }
+  if (old.receipt_path && old.receipt_path !== receipt_path) await supabase.storage.from("expense-receipts").remove([old.receipt_path]);
+  revalidatePath(`/expenses/${claimId}`);
+  redirect(`/expenses/${claimId}`);
 }
 
 export async function removeExpenseItem(claimId: string, itemId: string) {

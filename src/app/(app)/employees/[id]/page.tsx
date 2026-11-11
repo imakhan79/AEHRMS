@@ -223,7 +223,7 @@ export default async function EmployeePage({ params }: PageProps<"/employees/[id
 
         {(hr || isSelf || session.roles.has("auditor")) && (
           <Card title="Personnel file">
-            <DocumentsTable employeeId={id} canDelete={hr} />
+            <DocumentsTable employeeId={id} canDelete={hr} canReview={hr && !isSelf} />
             {(hr || isSelf) && (
               <div className="mt-8 border-t border-gray-100 pt-4">
                 <UploadForm employeeId={id} />

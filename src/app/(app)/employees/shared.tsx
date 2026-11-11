@@ -1,17 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
 import { buttonClass } from "@/components/ui";
-import { Table, Td } from "@/components/ui";
+import { Badge, Table, Td, statusTone } from "@/components/ui";
 import { fmtDate, titleCase } from "@/lib/format";
 import { deleteDocument, deleteEmergencyContact } from "./actions";
+import { ReviewDocument } from "./section-forms";
 
 /** Personnel file list with short-lived signed download links (private bucket). */
-export async function DocumentsTable({ employeeId, canDelete }: { employeeId: string; canDelete: boolean }) {
+export async function DocumentsTable({ employeeId, canDelete, canReview = false }: { employeeId: string; canDelete: boolean; canReview?: boolean }) {
   const supabase = await createClient();
-  const { data: docs } = await supabase
-    .from("employee_documents")
-    .select("id, doc_type, title, file_path, file_name, size_bytes, expiry_date, created_at")
-    .eq("employee_id", employeeId)
-    .order("created_at", { ascending: false });
+  const [{ data: docs }, { data: owner }] = await Promise.all([
+    supabase
+      .from("employee_documents")
+      .select("id, doc_type, title, file_path, file_name, size_bytes, expiry_date, created_at, uploaded_by, status, review_note")
+      .eq("employee_id", employeeId)
+      .order("created_at", { ascending: false }),
+    supabase.from("employees").select("user_id").eq("id", employeeId).maybeSingle(),
+  ]);
 
   const paths = (docs ?? []).map((d) => d.file_path);
   const { data: signed } = paths.length
@@ -21,7 +25,7 @@ export async function DocumentsTable({ employeeId, canDelete }: { employeeId: st
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <Table head={["Type", "Title", "File", "Expiry", "Uploaded", ""]} empty="No documents uploaded.">
+    <Table head={["Type", "Title", "File", "Expiry", "Uploaded", "Status", ""]} empty="No documents uploaded.">
       {(docs ?? []).map((d) => (
         <tr key={d.id}>
           <Td>{titleCase(d.doc_type)}</Td>
@@ -36,13 +40,23 @@ export async function DocumentsTable({ employeeId, canDelete }: { employeeId: st
             )}
           </Td>
           <Td className={d.expiry_date && d.expiry_date < today ? "font-medium text-red-600" : ""}>{fmtDate(d.expiry_date)}</Td>
-          <Td>{fmtDate(d.created_at)}</Td>
           <Td>
-            {canDelete && (
-              <form action={deleteDocument.bind(null, d.id)}>
-                <button className={buttonClass("danger", "sm")}>Delete</button>
-              </form>
-            )}
+            {fmtDate(d.created_at)}
+            <div className="text-xs text-gray-500">{d.uploaded_by && d.uploaded_by === owner?.user_id ? "by employee" : "by HR"}</div>
+          </Td>
+          <Td>
+            <Badge tone={statusTone(d.status)}>{d.status === "pending" ? "Awaiting HR" : titleCase(d.status)}</Badge>
+            {d.review_note && <div className="mt-1 max-w-48 whitespace-normal text-xs text-gray-500">{d.review_note}</div>}
+          </Td>
+          <Td>
+            <div className="flex flex-wrap items-center gap-2">
+              {canReview && d.status === "pending" && <ReviewDocument id={d.id} />}
+              {canDelete && (
+                <form action={deleteDocument.bind(null, d.id)}>
+                  <button className={buttonClass("danger", "sm")}>Delete</button>
+                </form>
+              )}
+            </div>
           </Td>
         </tr>
       ))}

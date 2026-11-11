@@ -75,12 +75,14 @@ export default async function ProfilePage() {
           </div>
         </Card>
 
-        <Card title="My documents">
-          <DocumentsTable employeeId={id} canDelete={false} />
-          <div className="mt-8 border-t border-gray-100 pt-4">
-            <UploadForm employeeId={id} />
-          </div>
-        </Card>
+        <div id="documents" className="scroll-mt-24">
+          <Card title="My documents" description="Files you upload are checked by HR before they count as verified.">
+            <DocumentsTable employeeId={id} canDelete={false} />
+            <div className="mt-8 border-t border-gray-100 pt-4">
+              <UploadForm employeeId={id} />
+            </div>
+          </Card>
+        </div>
       </div>
     </>
   );
